@@ -94,14 +94,13 @@
   <script>
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec';
 
-    // Helper central: reemplaza a google.script.run
-    function llamarAppsScript(accion, params) {
+      function llamarAppsScript(accion, params) {
       return fetch(APPS_SCRIPT_URL, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: accion, params: params || [] })
       }).then(function(res) { return res.json(); });
     }
-
     setTimeout(function() {
       document.getElementById('pantallaSplash').classList.add('oculto');
       document.getElementById('pantallaLogin').classList.add('visible');
