@@ -1,0 +1,25 @@
+{
+  "name": "Caja de Ahorros Unión y Progreso",
+  "short_name": "Unión y Progreso",
+  "description": "Portal del Socio - Caja de Ahorros Unión y Progreso",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#003087",
+  "theme_color": "#003087",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/1t6jfsrv/Chat-GPT-Image-25-ago-2026-08-16-31-p-m.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.postimg.cc/1t6jfsrv/Chat-GPT-Image-25-ago-2026-08-16-31-p-m.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
