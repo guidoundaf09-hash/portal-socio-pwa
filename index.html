@@ -171,8 +171,14 @@
             return;
           }
 
-          tokenSesion = res.token;
-          alert('LOGIN OK vía fetch(). Nombre: ' + res.nombre + ' - Token: ' + tokenSesion + ' - Debe cambiar clave: ' + res.debeCambiarPassword);
+                   tokenSesion = res.token;
+          let nombreSocioActual = res.nombre;
+
+          if (res.debeCambiarPassword) {
+            mostrarPantallaCambioPass();
+          } else {
+            mostrarPantallaBienvenida(nombreSocioActual);
+          }
         })
         .catch(function(err) {
           btn.disabled = false;
@@ -181,6 +187,76 @@
           divError.style.display = 'block';
         });
     });
+
+
+        function mostrarPantallaCambioPass() {
+      document.getElementById('pantallaLogin').classList.remove('visible');
+      document.getElementById('pantallaCambioPass').style.display = 'flex';
+    }
+
+    let intentoEnCurso = false;
+    let passwordGuardadaExitosamente = false;
+
+    document.getElementById('formCambioPass').addEventListener('submit', function() {
+      if (intentoEnCurso || passwordGuardadaExitosamente) return;
+
+      const nueva = document.getElementById('inputNuevaPass').value;
+      const confirmar = document.getElementById('inputConfirmarPass').value;
+      const btn = document.getElementById('btnGuardarPass');
+      const divError = document.getElementById('mensajeErrorCambio');
+
+      divError.style.display = 'none';
+
+      if (nueva.length < 6) {
+        divError.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        divError.style.display = 'block';
+        return;
+      }
+      if (nueva !== confirmar) {
+        divError.textContent = 'Las contraseñas no coinciden';
+        divError.style.display = 'block';
+        return;
+      }
+
+      intentoEnCurso = true;
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+
+      llamarAppsScript('cambiarPasswordSocio', [tokenSesion, nueva])
+        .then(function(res) {
+          intentoEnCurso = false;
+
+          if (!res.success) {
+            btn.disabled = false;
+            btn.textContent = 'Guardar contraseña';
+            divError.textContent = res.mensaje;
+            divError.style.display = 'block';
+            return;
+          }
+
+          passwordGuardadaExitosamente = true;
+          btn.textContent = 'Contraseña guardada ✓';
+          mostrarPantallaBienvenida(nombreSocioActual);
+        })
+        .catch(function(err) {
+          intentoEnCurso = false;
+          btn.disabled = false;
+          btn.textContent = 'Guardar contraseña';
+          divError.textContent = 'Error de conexión: ' + err.message;
+          divError.style.display = 'block';
+        });
+    });
+
+    function mostrarPantallaBienvenida(nombre) {
+      document.getElementById('pantallaLogin').classList.remove('visible');
+      document.getElementById('pantallaCambioPass').style.display = 'none';
+      document.getElementById('nombreBienvenida').textContent = nombre || 'Socio';
+      document.getElementById('pantallaBienvenida').style.display = 'flex';
+
+      setTimeout(function() {
+        alert('Aquí entraríamos al dashboard. Nombre: ' + nombre + ' - Token: ' + tokenSesion);
+      }, 1800);
+    }
   </script>
 
 </body>
