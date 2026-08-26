@@ -124,6 +124,69 @@
     <div style="color:#a9b8d6; font-size:12.5px; margin-top:34px;">Estamos cargando tus datos...</div>
     <div style="margin:16px auto 0; width:26px; height:26px; border:3px solid rgba(255,255,255,0.2); border-top-color:#D4AF37; border-radius:50%; animation:girar 0.9s linear infinite;"></div>
   </div> 
+
+
+    <!-- ===== DASHBOARD ===== -->
+  <div id="pantallaDashboard" style="position:fixed; inset:0; background:#fff; display:none; flex-direction:column; z-index:40; font-family:'Segoe UI',Arial,sans-serif;">
+
+    <div style="background:linear-gradient(135deg,#003087,#001d54); padding:22px 20px 26px; border-radius:0 0 26px 26px; color:#fff; position:relative; flex-shrink:0;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:15px; opacity:0.85;">Hola,</div>
+          <div id="nombreDash" style="font-size:19px; font-weight:800; color:#D4AF37; margin-top:2px;">Socio</div>
+        </div>
+        <div onclick="abrirPanelNotificaciones()" style="position:relative; width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer;">
+          🔔
+          <div id="badgeNotifDash" style="display:none; position:absolute; top:-3px; right:-3px; background:#D4AF37; color:#003087; font-size:10px; font-weight:800; min-width:16px; height:16px; border-radius:50%; align-items:center; justify-content:center; border:2px solid #003087;">0</div>
+        </div>
+      </div>
+
+      <div onclick="abrirSeccionAhorros()" style="margin-top:22px; background:rgba(255,255,255,0.08); border:1px solid rgba(212,175,55,0.4); border-radius:18px; padding:18px; cursor:pointer;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; opacity:0.8;">
+          <span>AHORROS A LA VISTA</span><span>Disponible</span>
+        </div>
+        <div id="numCuentaDash" style="font-size:11px; opacity:0.6; margin-top:3px;">—</div>
+        <div style="display:flex; align-items:baseline; gap:10px; margin-top:12px;">
+          <span id="saldoDash" style="font-size:30px; font-weight:800; color:#fff;">$0.00</span>
+          <span onclick="event.stopPropagation(); toggleSaldoDash();" style="cursor:pointer; font-size:16px; opacity:0.75;">👁️</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; padding:16px 16px 4px; overflow-x:auto; flex-shrink:0;">
+      <div class="tab-producto-dash activo" data-tab="ahorros" style="flex-shrink:0; padding:9px 16px; border-radius:20px; border:1.5px solid #003087; background:#003087; color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;">Ahorros a la vista</div>
+      <div class="tab-producto-dash" data-tab="flexible" style="flex-shrink:0; padding:9px 16px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;">Ahorro Flexible</div>
+      <div class="tab-producto-dash" data-tab="programado" style="flex-shrink:0; padding:9px 16px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;">Aho. Prog.</div>
+      <div class="tab-producto-dash" data-tab="creditos" style="flex-shrink:0; padding:9px 16px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;">Créditos</div>
+      <div class="tab-producto-dash" data-tab="inversiones" style="flex-shrink:0; padding:9px 16px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;">Inversiones</div>
+    </div>
+
+    <div style="flex:1; overflow-y:auto; padding:16px 20px 100px;"></div>
+
+    <div style="position:fixed; bottom:0; left:0; right:0; height:74px; background:#fff; border-top:1px solid #eef0f4; display:flex; align-items:center; justify-content:space-around; box-shadow:0 -6px 20px rgba(0,48,135,0.08); z-index:45;">
+      <div onclick="abrirAcreditarAhorroDesdeMenu()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#003087; font-size:10.5px; font-weight:600; cursor:pointer;">
+        <div style="font-size:19px;">💳</div>Pagar
+      </div>
+      <div class="boton-central-dash" onclick="abrirPanelServicios()" style="width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,#D4AF37,#b8952c); display:flex; align-items:center; justify-content:center; font-size:24px; color:#003087; margin-top:-30px; box-shadow:0 8px 18px rgba(212,175,55,0.5); cursor:pointer;">⚡</div>
+      <div onclick="abrirSeccionRetiros()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#9aa5b5; font-size:10.5px; font-weight:600; cursor:pointer;">
+        <div style="font-size:19px;">💸</div>Retiros
+      </div>
+      <div onclick="abrirSeccionPerfil()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#9aa5b5; font-size:10.5px; font-weight:600; cursor:pointer;">
+        <div style="font-size:19px;">👤</div>Perfil
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PANEL NOTIFICACIONES ===== -->
+  <div id="panelNotificaciones" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:70; display:none; align-items:flex-start; justify-content:center; padding-top:70px;">
+    <div style="background:#fff; border-radius:16px; width:92%; max-width:400px; max-height:75vh; overflow-y:auto; box-shadow:0 15px 40px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 18px; border-bottom:1px solid #eee;">
+        <div style="font-weight:800; color:#003087; font-size:15px;">Notificaciones</div>
+        <button onclick="cerrarPanelNotificaciones()" style="background:none; border:none; font-size:18px; color:#7a8699; cursor:pointer;">✕</button>
+      </div>
+      <div id="listaNotificacionesDash" style="padding:14px;"></div>
+    </div>
+  </div>
   <script>
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec';
 
@@ -253,10 +316,95 @@
       document.getElementById('nombreBienvenida').textContent = nombre || 'Socio';
       document.getElementById('pantallaBienvenida').style.display = 'flex';
 
-      setTimeout(function() {
-        alert('Aquí entraríamos al dashboard. Nombre: ' + nombre + ' - Token: ' + tokenSesion);
+          setTimeout(function() {
+        mostrarDashboard(nombre);
       }, 1800);
     }
+
+        function mostrarDashboard(nombre) {
+      document.getElementById('pantallaBienvenida').style.display = 'none';
+      document.getElementById('nombreDash').textContent = nombre || 'Socio';
+      document.getElementById('pantallaDashboard').style.display = 'flex';
+      cargarSaldoAhorroDash();
+      actualizarBadgeNotificacionesDash();
+    }
+
+    let cuentaAhorroActual = null;
+
+    function cargarSaldoAhorroDash() {
+      llamarAppsScript('obtenerCuentaAhorroVista', [tokenSesion])
+        .then(function(res) {
+          if (res.success && res.tieneCuenta) {
+            document.getElementById('saldoDash').textContent = '$' + res.saldoActual.toFixed(2);
+            document.getElementById('numCuentaDash').textContent = res.numeroCuenta;
+            cuentaAhorroActual = res;
+          } else {
+            document.getElementById('saldoDash').textContent = '$0.00';
+            document.getElementById('numCuentaDash').textContent = 'Sin cuenta activa';
+          }
+        })
+        .catch(function() {});
+    }
+
+    function toggleSaldoDash() {
+      document.getElementById('saldoDash').classList.toggle('saldo-oculto');
+    }
+
+    function actualizarBadgeNotificacionesDash() {
+      llamarAppsScript('contarNotificacionesNoVistas', [tokenSesion])
+        .then(function(res) {
+          const badge = document.getElementById('badgeNotifDash');
+          const cantidad = res.cantidad || 0;
+          if (cantidad > 0) {
+            badge.textContent = cantidad > 9 ? '9+' : cantidad;
+            badge.style.display = 'flex';
+          } else {
+            badge.style.display = 'none';
+          }
+        })
+        .catch(function() {});
+    }
+
+    function abrirPanelNotificaciones() {
+      document.getElementById('panelNotificaciones').style.display = 'flex';
+      const cont = document.getElementById('listaNotificacionesDash');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerNotificacionesSocio', [tokenSesion])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+
+          if (!res.notificaciones.length) {
+            cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">No tienes notificaciones.</div>';
+          } else {
+            let html = '';
+            res.notificaciones.forEach(function(n) {
+              const colorFondo = n.estado === 'Rechazado' ? '#fdeceb' : (n.estado === 'Aprobado' ? '#e8f5e9' : '#eef2fb');
+              html += '<div style="background:' + colorFondo + '; border-radius:12px; padding:12px 14px; margin-bottom:10px;">' +
+                        '<div style="font-size:13.5px; font-weight:700; color:#1a2332;">' + n.icono + ' ' + n.titulo + '</div>' +
+                        '<div style="font-size:12.5px; color:#4a5568; margin-top:4px;">' + n.mensaje + '</div>' +
+                        '<div style="font-size:11px; color:#9aa5b5; margin-top:4px;">' + n.fechaTexto + '</div>' +
+                      '</div>';
+            });
+            cont.innerHTML = html;
+          }
+
+          llamarAppsScript('marcarNotificacionesVistas', [tokenSesion]).catch(function() {});
+          document.getElementById('badgeNotifDash').style.display = 'none';
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function cerrarPanelNotificaciones() {
+      document.getElementById('panelNotificaciones').style.display = 'none';
+    }
+
+    // Placeholders temporales (los migramos en los siguientes pasos)
+    function abrirSeccionAhorros() { alert('Próximo paso: migrar Ahorros a la Vista'); }
+    function abrirAcreditarAhorroDesdeMenu() { alert('Próximo paso: migrar Ahorros a la Vista'); }
+    function abrirSeccionRetiros() { alert('Próximo paso: migrar Retiros'); }
+    function abrirSeccionPerfil() { alert('Próximo paso: migrar Perfil'); }
+    function abrirPanelServicios() { alert('Próximo paso: panel de servicios'); }
   </script>
 
 </body>
