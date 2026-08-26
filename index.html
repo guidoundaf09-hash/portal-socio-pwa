@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Caja de Ahorros Unión y Progreso</title>
+
+  <link rel="manifest" href="manifest.json">
+
+  <meta name="theme-color" content="#003087">
+</head>
+
+<body style="
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#003087;
+  font-family:Arial,sans-serif;
+">
+
+  <div style="
+    background:white;
+    padding:40px;
+    border-radius:20px;
+    text-align:center;
+    max-width:400px;
+  ">
+
+    <h1 style="color:#003087;">
+      Caja de Ahorros
+    </h1>
+
+    <h2 style="color:#003087;">
+      Unión y Progreso
+    </h2>
+
+    <p>
+      🏦 Prueba de PWA
+    </p>
+
+    <p id="estado">
+      Comprobando conexión...
+    </p>
+
+  </div>
+
+<script>
+
+if ('serviceWorker' in navigator) {
+
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => {
+
+      document.getElementById('estado').textContent =
+        '✅ PWA funcionando correctamente';
+
+    })
+    .catch((error) => {
+
+      document.getElementById('estado').textContent =
+        '❌ Error con Service Worker';
+
+      console.error(error);
+
+    });
+
+}
+
+</script>
+
+</body>
+</html>
