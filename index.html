@@ -1,109 +1,155 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Caja de Ahorros Unión y Progreso</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Portal del Socio - Caja de Ahorros</title>
   <link rel="manifest" href="manifest.json">
-
   <meta name="theme-color" content="#003087">
+  <style>
+    :root {
+      --azul-principal: #003087;
+      --azul-oscuro: #001d54;
+      --dorado: #D4AF37;
+      --dorado-claro: #f1d98b;
+      --blanco: #ffffff;
+    }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; background: var(--azul-principal); }
+
+    #pantallaSplash {
+      position: fixed; inset: 0;
+      background: linear-gradient(160deg, var(--azul-principal) 0%, var(--azul-oscuro) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #pantallaSplash.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .contenido-splash { text-align: center; }
+    .contenido-splash img { height: 92px; margin-bottom: 18px; }
+    .nombre-caja { color: var(--dorado); font-size: 26px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+    .subnombre-caja { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 3px; margin-top: 4px; text-transform: uppercase; opacity: 0.9; }
+    .slogan-caja { color: var(--dorado-claro); font-size: 12.5px; font-style: italic; margin-top: 14px; }
+    .spinner-splash { margin-top: 40px; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.25); border-top-color: var(--dorado); border-radius: 50%; animation: girar 0.9s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+
+    #pantallaLogin {
+      position: fixed; inset: 0;
+      background: linear-gradient(180deg, #f4f7fb 0%, #e9eef5 100%);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0.6s ease; padding: 20px;
+    }
+    #pantallaLogin.visible { opacity: 1; visibility: visible; }
+
+    .tarjeta-login { width: 100%; max-width: 380px; background: #fff; border-radius: 22px; padding: 36px 28px 30px; box-shadow: 0 20px 50px rgba(0,48,135,0.15); text-align: center; }
+    .tarjeta-login img { height: 60px; margin-bottom: 10px; }
+    .titulo-login-caja { color: var(--azul-principal); font-size: 19px; font-weight: 800; }
+    .subtitulo-login { color: #7a8699; font-size: 13px; margin-top: 4px; margin-bottom: 26px; }
+
+    .campo-login { text-align: left; margin-bottom: 16px; }
+    .campo-login label { display: block; font-size: 12.5px; font-weight: 700; color: var(--azul-principal); margin-bottom: 6px; }
+    .campo-login input { width: 100%; padding: 13px 14px; border: 1.5px solid #dde3ec; border-radius: 12px; font-size: 15px; outline: none; background: #f8fafc; }
+    .campo-login input:focus { border-color: var(--azul-principal); background: #fff; }
+
+    .btn-ingresar { width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--azul-principal), var(--azul-oscuro)); color: #fff; font-size: 15.5px; font-weight: 700; cursor: pointer; }
+    .btn-ingresar:disabled { opacity: 0.6; cursor: default; }
+
+    .mensaje-error-login { background: #fdeceb; color: #c0392b; font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 10px; margin-bottom: 16px; display: none; text-align: left; }
+  </style>
 </head>
+<body>
 
-<body style="
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:#003087;
-  font-family:Arial,sans-serif;
-">
-
-  <div style="
-    background:white;
-    padding:40px;
-    border-radius:20px;
-    text-align:center;
-    max-width:400px;
-  ">
-
-    <h1 style="color:#003087;">
-      Caja de Ahorros
-    </h1>
-
-    <h2 style="color:#003087;">
-      Unión y Progreso
-    </h2>
-
-    <p>
-      🏦 Prueba de PWA
-    </p>
-
-    <button onclick="probarConexion()" style="
-  background:#003087;
-  color:white;
-  border:none;
-  padding:14px 25px;
-  border-radius:10px;
-  font-size:16px;
-  cursor:pointer;
-">
-  🔗 PROBAR CONEXIÓN
-</button>
-
-<p id="estado" style="margin-top:20px;">
-  Pulsa el botón para comprobar la conexión.
-</p>
-
+  <div id="pantallaSplash">
+    <div class="contenido-splash">
+      <img src="https://i.postimg.cc/1t6jfsrv/Chat-GPT-Image-25-ago-2026-08-16-31-p-m.png" alt="Logo">
+      <div class="nombre-caja">Unión y Progreso</div>
+      <div class="subnombre-caja">Caja de Ahorro</div>
+      <div class="slogan-caja">"Tu ahorro, tu futuro"</div>
+      <div class="spinner-splash"></div>
+    </div>
   </div>
 
-<script>
+  <div id="pantallaLogin">
+    <div class="tarjeta-login">
+      <img src="https://i.postimg.cc/1t6jfsrv/Chat-GPT-Image-25-ago-2026-08-16-31-p-m.png" alt="Logo">
+      <div class="titulo-login-caja">UNIÓN Y PROGRESO</div>
+      <div class="subtitulo-login">Portal del Socio</div>
 
-const URL_APPS_SCRIPT =
-  'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec?page=pruebaPWA';
+      <div class="mensaje-error-login" id="mensajeErrorLogin"></div>
 
+      <form id="formLogin" onsubmit="return false;">
+        <div class="campo-login">
+          <label>Correo electrónico</label>
+          <input type="email" id="inputCorreo" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+        </div>
+        <div class="campo-login">
+          <label>Contraseña</label>
+          <input type="password" id="inputPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-ingresar" id="btnIngresar">Ingresar</button>
+      </form>
+    </div>
+  </div>
 
-async function probarConexion() {
+  <script>
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec';
 
-  const estado = document.getElementById('estado');
-
-  estado.textContent = '⏳ Conectando con el servidor...';
-
-  try {
-
-    const respuesta = await fetch(URL_APPS_SCRIPT);
-
-    if (!respuesta.ok) {
-      throw new Error('Error HTTP ' + respuesta.status);
+    // Helper central: reemplaza a google.script.run
+    function llamarAppsScript(accion, params) {
+      return fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: accion, params: params || [] })
+      }).then(function(res) { return res.json(); });
     }
 
-    const datos = await respuesta.json();
+    setTimeout(function() {
+      document.getElementById('pantallaSplash').classList.add('oculto');
+      document.getElementById('pantallaLogin').classList.add('visible');
+    }, 2500);
 
-    if (datos.ok === true) {
+    let tokenSesion = null;
 
-      estado.textContent =
-        '✅ Servidor conectado correctamente';
+    document.getElementById('formLogin').addEventListener('submit', function(e) {
+      e.preventDefault();
 
-    } else {
+      const correo = document.getElementById('inputCorreo').value.trim();
+      const password = document.getElementById('inputPassword').value;
+      const btn = document.getElementById('btnIngresar');
+      const divError = document.getElementById('mensajeErrorLogin');
 
-      estado.textContent =
-        '⚠️ El servidor respondió, pero hubo un problema';
+      divError.style.display = 'none';
 
-    }
+      if (!correo || !password) {
+        divError.textContent = 'Ingresa tu correo y contraseña';
+        divError.style.display = 'block';
+        return;
+      }
 
-  } catch (error) {
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
 
-    console.error(error);
+      llamarAppsScript('loginSocio', [correo, password])
+        .then(function(res) {
+          btn.disabled = false;
+          btn.textContent = 'Ingresar';
 
-    estado.textContent =
-      '❌ No se pudo conectar con Apps Script';
+          if (!res.success) {
+            divError.textContent = res.mensaje;
+            divError.style.display = 'block';
+            return;
+          }
 
-  }
+          tokenSesion = res.token;
+          alert('LOGIN OK vía fetch(). Nombre: ' + res.nombre + ' - Token: ' + tokenSesion + ' - Debe cambiar clave: ' + res.debeCambiarPassword);
+        })
+        .catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Ingresar';
+          divError.textContent = 'Error de conexión: ' + err.message;
+          divError.style.display = 'block';
+        });
+    });
+  </script>
 
-}
-
-</script>
 </body>
 </html>
