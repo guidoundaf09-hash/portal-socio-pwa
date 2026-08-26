@@ -41,35 +41,69 @@
       🏦 Prueba de PWA
     </p>
 
-    <p id="estado">
-      Comprobando conexión...
-    </p>
+    <button onclick="probarConexion()" style="
+  background:#003087;
+  color:white;
+  border:none;
+  padding:14px 25px;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+">
+  🔗 PROBAR CONEXIÓN
+</button>
+
+<p id="estado" style="margin-top:20px;">
+  Pulsa el botón para comprobar la conexión.
+</p>
 
   </div>
 
 <script>
 
-if ('serviceWorker' in navigator) {
+const URL_APPS_SCRIPT =
+  'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec?page=pruebaPWA';
 
-  navigator.serviceWorker.register('service-worker.js')
-    .then(() => {
 
-      document.getElementById('estado').textContent =
-        '✅ PWA funcionando correctamente';
+async function probarConexion() {
 
-    })
-    .catch((error) => {
+  const estado = document.getElementById('estado');
 
-      document.getElementById('estado').textContent =
-        '❌ Error con Service Worker';
+  estado.textContent = '⏳ Conectando con el servidor...';
 
-      console.error(error);
+  try {
 
-    });
+    const respuesta = await fetch(URL_APPS_SCRIPT);
+
+    if (!respuesta.ok) {
+      throw new Error('Error HTTP ' + respuesta.status);
+    }
+
+    const datos = await respuesta.json();
+
+    if (datos.ok === true) {
+
+      estado.textContent =
+        '✅ Servidor conectado correctamente';
+
+    } else {
+
+      estado.textContent =
+        '⚠️ El servidor respondió, pero hubo un problema';
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    estado.textContent =
+      '❌ No se pudo conectar con Apps Script';
+
+  }
 
 }
 
 </script>
-
 </body>
 </html>
