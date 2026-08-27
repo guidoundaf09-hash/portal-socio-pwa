@@ -91,7 +91,30 @@
     .fila-dato-cuota b { color:#003087; }
 
     .tab-producto-dash.activo { background:#003087 !important; color:#fff !important; }
-  
+      .card-select-credito { background:#fff; border:1.5px solid #D4AF37; border-radius:16px; padding:16px 18px; margin-bottom:12px; cursor:pointer; }
+    .card-select-credito .nombre-cred { color:#003087; font-weight:800; font-size:14.5px; }
+    .card-select-credito .detalle-cred { color:#7a8699; font-size:12px; margin-top:4px; }
+    .card-select-credito .monto-cred { color:#D4AF37; font-weight:800; font-size:18px; margin-top:8px; }
+
+    .card-cuota { border-radius:16px; padding:16px 18px; margin-bottom:12px; border:1.5px solid; background:#fff; }
+    .card-cuota.pendiente { border-color:#003087; }
+    .card-cuota.mora { border-color:#e53935; background:#fff5f5; }
+    .card-cuota.pagado { border-color:#2e7d32; background:#f5fbf6; }
+    .card-cuota.revision { border-color:#f39c12; background:#fff9ec; }
+
+    .fila-titulo-cuota { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .num-cuota-txt { font-weight:800; font-size:14.5px; color:#003087; }
+
+    .badge-estado-cuota { font-size:10.5px; font-weight:800; padding:4px 10px; border-radius:20px; text-transform:uppercase; }
+    .badge-estado-cuota.pendiente { background:#e8eefc; color:#003087; }
+    .badge-estado-cuota.mora { background:#fdeceb; color:#c0392b; }
+    .badge-estado-cuota.pagado { background:#e8f5e9; color:#2e7d32; }
+    .badge-estado-cuota.revision { background:#fdf1de; color:#b8770a; }
+
+    .cuota-total-linea { display:flex; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px dashed #ddd; font-size:14px; font-weight:800; }
+    .cuota-total-linea.pendiente { color:#003087; }
+    .cuota-total-linea.mora { color:#c0392b; }
+    .cuota-total-linea.pagado { color:#2e7d32; }
   </style>
 </head>
 <body>
@@ -237,7 +260,16 @@
   </div>
 
 
-
+  <!-- ===== CRÉDITOS ===== -->
+  <div id="pantallaCreditos" style="position:fixed; inset:0; background:#f7f9fc; display:none; flex-direction:column; z-index:55; font-family:'Segoe UI',Arial,sans-serif;">
+    <div style="background:linear-gradient(135deg,#003087,#001d54); padding:18px 20px; color:#fff; display:flex; align-items:center; gap:14px; flex-shrink:0;">
+      <button onclick="volverAlDashboardCreditos()" style="background:rgba(255,255,255,0.12); border:none; width:34px; height:34px; border-radius:50%; color:#fff; font-size:16px; cursor:pointer;">←</button>
+      <div id="tituloHeaderCreditos" style="font-size:16px; font-weight:800;">Mis Créditos</div>
+    </div>
+    <div id="contenidoCreditos" style="flex:1; overflow-y:auto; padding:18px 16px 40px;">
+      <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando información...</div>
+    </div>
+  </div>
 
 
 
@@ -814,6 +846,297 @@
     function cerrarModalRetiroRapido() {
       const modal = document.getElementById('modalRetiroRapido');
       if (modal) modal.style.display = 'none';
+    }
+
+
+
+
+        document.querySelectorAll('.tab-producto-dash').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab-producto-dash').forEach(function(t) { t.classList.remove('activo'); });
+        tab.classList.add('activo');
+
+        const destino = tab.getAttribute('data-tab');
+        if (destino === 'creditos') abrirSeccionCreditos();
+        // 'flexible', 'programado', 'inversiones' los conectamos en los próximos pasos
+      });
+    });
+
+
+
+        let idPrestamoActual = null;
+    let cuotasCache = [];
+    let saldoAFavorCache = 0;
+    let moraViejaPendienteCache = 0;
+
+    function volverAlDashboardCreditos() {
+      document.getElementById('pantallaCreditos').style.display = 'none';
+      document.getElementById('pantallaDashboard').style.display = 'flex';
+    }
+
+    function abrirSeccionCreditos() {
+      document.getElementById('pantallaDashboard').style.display = 'none';
+      document.getElementById('pantallaCreditos').style.display = 'flex';
+      document.getElementById('tituloHeaderCreditos').textContent = 'Mis Créditos';
+
+      const cont = document.getElementById('contenidoCreditos');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando información...</div>';
+
+      llamarAppsScript('obtenerCreditosActivosSocio', [tokenSesion])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+
+          if (res.creditos.length === 0) {
+            cont.innerHTML = '<div style="text-align:center; padding:40px;">No tienes créditos activos actualmente.</div>';
+            return;
+          }
+
+          if (res.creditos.length === 1) {
+            abrirDetalleCredito(res.creditos[0].idPrestamo);
+            return;
+          }
+
+          let html = '';
+          res.creditos.forEach(function(c) {
+            html += '<div class="card-select-credito" onclick="abrirDetalleCredito(\'' + c.idPrestamo + '\')">' +
+                      '<div class="nombre-cred">' + c.tipoCredito + '</div>' +
+                      '<div class="detalle-cred">Desembolso: ' + c.fechaDesembolso + ' · Plazo: ' + c.plazo + '</div>' +
+                      '<div class="monto-cred">$' + c.monto.toFixed(2) + '</div>' +
+                    '</div>';
+          });
+          cont.innerHTML = html;
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function abrirDetalleCredito(idPrestamo) {
+      idPrestamoActual = idPrestamo;
+      document.getElementById('tituloHeaderCreditos').textContent = 'Detalle del crédito';
+
+      const cont = document.getElementById('contenidoCreditos');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando cuotas...</div>';
+
+      llamarAppsScript('obtenerDetalleCreditoSocio', [tokenSesion, idPrestamo])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+
+          cuotasCache = res.cuotas;
+          saldoAFavorCache = res.saldoAFavor;
+          moraViejaPendienteCache = res.moraViejaPendiente;
+
+          let avisoTop = '';
+          if (res.saldoAFavor > 0) {
+            avisoTop += '<div class="fila-dato-cuota" style="color:#2e7d32; font-weight:700; margin-bottom:10px;">💰 Tienes $' + res.saldoAFavor.toFixed(2) + ' a favor sin aplicar</div>';
+          }
+
+          let html = avisoTop;
+
+          res.cuotas.forEach(function(c) {
+            let clase = 'pendiente';
+            let badgeTexto = 'Pendiente';
+
+            if (c.estado === 'MORA') { clase = 'mora'; badgeTexto = 'Vencida'; }
+            else if (c.estado === 'PAGADO') { clase = 'pagado'; badgeTexto = (c.moraAcumulada > 0 && c.estadoMora === 'CANCELADO') ? 'Pagado con mora' : 'Pagado a tiempo'; }
+
+            const bloqueadaPorRevision = c.enRevision && c.estado !== 'PAGADO';
+            if (bloqueadaPorRevision) { clase = 'revision'; badgeTexto = 'En revisión'; }
+
+            const puedeClick = (c.estado !== 'PAGADO' && !bloqueadaPorRevision);
+
+            html += '<div class="card-cuota ' + clase + '" ' +
+                      (puedeClick ? 'onclick="irAPagarCuota(\'' + c.idCuota + '\')"' : '') +
+                      ' style="' + (puedeClick ? 'cursor:pointer;' : '') + '">' +
+                      '<div class="fila-titulo-cuota">' +
+                        '<span class="num-cuota-txt">Cuota #' + c.numCuota + '</span>' +
+                        '<span class="badge-estado-cuota ' + clase + '">' + badgeTexto + '</span>' +
+                      '</div>' +
+                      '<div class="fila-dato-cuota" style="color:#003087; font-weight:700;"><span>Saldo del crédito</span><b>$' + c.saldo.toFixed(2) + '</b></div>' +
+                      '<div class="fila-dato-cuota"><span>Capital</span><b>$' + c.capital.toFixed(2) + '</b></div>' +
+                      '<div class="fila-dato-cuota"><span>Interés</span><b>$' + c.interes.toFixed(2) + '</b></div>';
+
+            if (c.estado === 'MORA') {
+              html += '<div class="fila-dato-cuota"><span>Mora acumulada</span><b>$' + c.moraAcumulada.toFixed(2) + '</b></div>' +
+                      '<div class="fila-dato-cuota"><span>Días vencidos</span><b>' + c.diasVencidos + '</b></div>' +
+                      '<div class="fila-dato-cuota"><span>Venció</span><b>' + c.vence + '</b></div>' +
+                      '<div class="cuota-total-linea mora"><span>Total a pagar</span><span>$' + (c.capital + c.interes + c.moraAcumulada).toFixed(2) + '</span></div>';
+            } else if (c.estado === 'PENDIENTE') {
+              html += '<div class="fila-dato-cuota"><span>Vence</span><b>' + c.vence + '</b></div>' +
+                      '<div class="cuota-total-linea pendiente"><span>Total a pagar</span><span>$' + c.cuota.toFixed(2) + '</span></div>';
+            } else {
+              html += '<div class="fila-dato-cuota"><span>Pagado el</span><b>' + c.fechaPagado + '</b></div>' +
+                      '<div class="cuota-total-linea pagado"><span>Total pagado</span><span>$' + c.cuota.toFixed(2) + '</span></div>';
+            }
+
+            html += '</div>';
+          });
+
+          cont.innerHTML = html;
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function irAPagarCuota(idCuota) {
+      const c = cuotasCache.find(function(x) { return x.idCuota === idCuota; });
+      if (!c) { alert('No se encontró la cuota'); return; }
+
+      const cuotaAnteriorSinPagar = cuotasCache.find(function(x) {
+        return Number(x.numCuota) < Number(c.numCuota) && (x.estado === 'PENDIENTE' || x.estado === 'MORA');
+      });
+
+      if (cuotaAnteriorSinPagar) {
+        alert('Tienes cuotas pendientes de pago anteriores (Cuota #' + cuotaAnteriorSinPagar.numCuota + '). Debes pagarlas primero en orden.');
+        return;
+      }
+
+      document.getElementById('tituloHeaderCreditos').textContent = 'Pagar cuota #' + c.numCuota;
+
+      const esMora = (c.estado === 'MORA');
+      const moraEstaCuota = esMora ? c.moraAcumulada : 0;
+      const totalBase = c.capital + c.interes + moraEstaCuota;
+
+      const numCuotaMaxima = Math.max.apply(null, cuotasCache.map(function(x) { return Number(x.numCuota); }));
+      const esUltimaCuota = (Number(c.numCuota) === numCuotaMaxima);
+
+      let minimoPermitido;
+      if (esUltimaCuota) {
+        minimoPermitido = (c.capital + c.interes + moraViejaPendienteCache + moraEstaCuota) - saldoAFavorCache;
+      } else {
+        minimoPermitido = (c.capital + c.interes) - saldoAFavorCache;
+      }
+      if (minimoPermitido < 0) minimoPermitido = 0;
+
+      let totalNeto = totalBase + moraViejaPendienteCache - saldoAFavorCache;
+      if (totalNeto < minimoPermitido) totalNeto = minimoPermitido;
+      if (totalNeto < 0) totalNeto = 0;
+
+      let lineasExtra = '';
+      if (moraViejaPendienteCache > 0) {
+        lineasExtra += '<div class="fila-dato-cuota" style="color:#c0392b;"><span>⚠️ Mora anterior pendiente</span><b>+$' + moraViejaPendienteCache.toFixed(2) + '</b></div>';
+      }
+      if (saldoAFavorCache > 0) {
+        lineasExtra += '<div class="fila-dato-cuota" style="color:#2e7d32;"><span>💰 Saldo a favor</span><b>-$' + saldoAFavorCache.toFixed(2) + '</b></div>';
+      }
+
+      const cont = document.getElementById('contenidoCreditos');
+      cont.innerHTML =
+        '<div class="card-cuota ' + (esMora ? 'mora' : 'pendiente') + '">' +
+          '<div class="fila-titulo-cuota"><span class="num-cuota-txt">Cuota #' + c.numCuota + '</span></div>' +
+          '<div class="fila-dato-cuota"><span>Capital</span><b>$' + c.capital.toFixed(2) + '</b></div>' +
+          '<div class="fila-dato-cuota"><span>Interés</span><b>$' + c.interes.toFixed(2) + '</b></div>' +
+          (esMora ? '<div class="fila-dato-cuota"><span>Mora de esta cuota</span><b>$' + moraEstaCuota.toFixed(2) + '</b></div>' : '') +
+          lineasExtra +
+          '<div class="cuota-total-linea ' + (esMora ? 'mora' : 'pendiente') + '"><span>Total a transferir</span><span id="totalATransferirTxt">$' + totalNeto.toFixed(2) + '</span></div>' +
+        '</div>' +
+        '<div id="zonaPagoOculta"></div>' +
+        '<button id="btnMostrarPago" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:6px;">Pagar</button>';
+
+      document.getElementById('btnMostrarPago').addEventListener('click', function() {
+        this.style.display = 'none';
+        mostrarZonaPago(c, totalNeto, minimoPermitido);
+      });
+    }
+
+    function mostrarZonaPago(c, totalSugerido, minimoPermitido) {
+      const zona = document.getElementById('zonaPagoOculta');
+      zona.innerHTML =
+        '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-top:12px; border:1.5px solid #D4AF37;">' +
+          '<div style="display:flex; gap:8px; margin-bottom:14px;">' +
+            '<button id="tabCuenta" class="tab-producto-dash activo" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; cursor:pointer;" onclick="cambiarTabPago(\'cuenta\')">🏦 Cuenta</button>' +
+            '<button id="tabQR" class="tab-producto-dash" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; cursor:pointer;" onclick="cambiarTabPago(\'qr\')">📱 QR</button>' +
+          '</div>' +
+          '<div id="panelCuenta">' +
+            '<div class="fila-dato-cuota"><span>Beneficiario</span></div>' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:8px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<div class="fila-dato-cuota"><span>Banco</span><b>Pichincha</b></div>' +
+            '<div class="fila-dato-cuota"><span>Tipo</span><b>Ahorro transaccional</b></div>' +
+            '<div class="fila-dato-cuota"><span>Número</span><b id="numCuentaTxt">2207263686</b></div>' +
+            '<button onclick="copiarNumeroCuenta()" style="margin-top:8px; padding:9px 14px; border:1px solid #003087; background:#eef2fb; color:#003087; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer;">📋 Copiar número</button>' +
+          '</div>' +
+          '<div id="panelQR" style="display:none; text-align:center;">' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:10px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<img src="https://i.ibb.co/tMRrt2dN/qr.png" style="width:100%; max-width:220px; border-radius:12px; border:1px solid #eee;">' +
+            '<div style="font-size:12px; color:#7a8699; margin-top:8px;">Escanea para transferir</div>' +
+          '</div>' +
+          '<div style="margin-top:18px; border-top:1px dashed #ddd; padding-top:14px;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">¿Cuánto transferiste?</label>' +
+            '<input type="number" id="inputValorPagado" value="' + totalSugerido.toFixed(2) + '" step="0.01" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<div id="avisoMinimoPago" style="display:none; color:#c0392b; font-size:12px; font-weight:600; margin-bottom:10px;">Este valor está por debajo de la cuota mínima ($' + minimoPermitido.toFixed(2) + ')</div>' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de comprobante</label>' +
+            '<input type="text" id="inputComprobante" placeholder="Ej. 123456789" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de cuenta desde donde transferiste</label>' +
+            '<input type="text" id="inputCuentaOrigen" placeholder="Ej. 2200123456" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<button id="btnEnviarSolicitud" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;">Enviar solicitud</button>' +
+          '</div>' +
+        '</div>';
+
+      llamarAppsScript('obtenerNumeroCuentaSocio', [tokenSesion])
+        .then(function(res) {
+          if (res.success && res.numeroCuenta) document.getElementById('inputCuentaOrigen').value = res.numeroCuenta;
+        })
+        .catch(function() {});
+
+      document.getElementById('inputValorPagado').addEventListener('input', function() {
+        const val = parseFloat(this.value) || 0;
+        const aviso = document.getElementById('avisoMinimoPago');
+        const btn = document.getElementById('btnEnviarSolicitud');
+        if (val < minimoPermitido) {
+          aviso.style.display = 'block';
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+        } else {
+          aviso.style.display = 'none';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      });
+
+      let solicitudEnviada = false;
+
+      document.getElementById('btnEnviarSolicitud').addEventListener('click', function() {
+        if (solicitudEnviada) return;
+
+        const valorPagado = parseFloat(document.getElementById('inputValorPagado').value) || 0;
+        const comprobante = document.getElementById('inputComprobante').value.trim();
+        const cuentaOrigen = document.getElementById('inputCuentaOrigen').value.trim();
+        const btn = this;
+
+        if (!comprobante) { alert('Ingresa el número de comprobante'); return; }
+        if (!cuentaOrigen) { alert('Ingresa el número de cuenta desde donde transferiste'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+
+        llamarAppsScript('crearSolicitudPagoCuota', [tokenSesion, c.idCuota, valorPagado, comprobante, cuentaOrigen])
+          .then(function(res) {
+            if (!res.success) {
+              btn.disabled = false;
+              btn.textContent = 'Enviar solicitud';
+              alert(res.mensaje);
+              return;
+            }
+
+            solicitudEnviada = true;
+            alert(res.mensaje);
+            abrirDetalleCredito(idPrestamoActual);
+          })
+          .catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'Enviar solicitud';
+            alert('Error de conexión: ' + err.message);
+          });
+      });
+    }
+
+    function cambiarTabPago(tab) {
+      document.getElementById('tabCuenta').classList.toggle('activo', tab === 'cuenta');
+      document.getElementById('tabQR').classList.toggle('activo', tab === 'qr');
+      document.getElementById('panelCuenta').style.display = (tab === 'cuenta') ? 'block' : 'none';
+      document.getElementById('panelQR').style.display = (tab === 'qr') ? 'block' : 'none';
+    }
+
+    function copiarNumeroCuenta() {
+      const numero = document.getElementById('numCuentaTxt').textContent;
+      navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
     }
   </script>
 
