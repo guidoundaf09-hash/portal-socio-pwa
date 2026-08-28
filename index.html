@@ -384,7 +384,8 @@
       document.getElementById('pantallaLogin').classList.add('visible');
     }, 2500);
 
-    let tokenSesion = null;
+       let tokenSesion = null;
+    let nombreSocioActual = null;
 
     document.getElementById('formLogin').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -416,8 +417,8 @@
             return;
           }
 
-                   tokenSesion = res.token;
-          let nombreSocioActual = res.nombre;
+                             tokenSesion = res.token;
+          nombreSocioActual = res.nombre;
 
           if (res.debeCambiarPassword) {
             mostrarPantallaCambioPass();
