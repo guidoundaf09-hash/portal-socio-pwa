@@ -153,6 +153,17 @@
 
         .btn-perfil-accion { width:100%; text-align:left; padding:14px 16px; margin-bottom:10px; border-radius:12px; border:1px solid #eee; background:#fff; font-size:13.5px; font-weight:600; color:#1a2332; cursor:pointer; }
     .btn-perfil-accion.peligro { color:#c0392b; border-color:#f5cfc9; }
+        .titulo-recuperar { color:#003087; font-size:18px; font-weight:800; }
+    .subtitulo-recuperar { color:#7a8699; font-size:13px; margin-top:6px; margin-bottom:24px; line-height:1.5; }
+    .campo-recuperar { text-align:left; margin-bottom:16px; }
+    .campo-recuperar label { display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px; }
+    .campo-recuperar input { width:100%; padding:13px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; outline:none; background:#f8fafc; box-sizing:border-box; }
+    .campo-recuperar input:focus { border-color:#003087; background:#fff; }
+    .mensaje-info-recuperar { background:#eef2fb; color:#003087; font-size:12px; font-weight:600; padding:10px 12px; border-radius:10px; margin-bottom:16px; display:none; text-align:left; }
+    .mensaje-error-recuperar { background:#fdeceb; color:#c0392b; font-size:12.5px; font-weight:600; padding:10px 12px; border-radius:10px; margin-bottom:16px; display:none; text-align:left; }
+    .btn-recuperar { width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15.5px; font-weight:700; cursor:pointer; }
+    .btn-recuperar:disabled { opacity:0.6; cursor:default; }
+    .link-volver-recuperar { display:block; margin-top:16px; font-size:12.5px; color:#7a8699; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -184,6 +195,7 @@
           <label>Contraseña</label>
           <input type="password" id="inputPassword" placeholder="••••••••" autocomplete="current-password">
         </div>
+                <span class="link-volver-recuperar" onclick="abrirPantallaRecuperar()" style="text-align:right; display:block; margin-bottom:14px; color:#003087; font-weight:600;">¿Olvidaste tu contraseña?</span>
         <button type="submit" class="btn-ingresar" id="btnIngresar">Ingresar</button>
       </form>
     </div>
@@ -351,7 +363,10 @@
     </div>
   </div>
   
-
+  <!-- ===== RECUPERAR CONTRASEÑA ===== -->
+  <div id="pantallaRecuperar" style="position:fixed; inset:0; background:linear-gradient(180deg, #f4f7fb 0%, #e9eef5 100%); display:none; align-items:center; justify-content:center; padding:20px; z-index:65;">
+    <div class="tarjeta-recuperar" id="contenidoRecuperar" style="width:100%; max-width:380px; background:#fff; border-radius:22px; padding:34px 28px 30px; box-shadow:0 20px 50px rgba(0,48,135,0.15); text-align:center;"></div>
+  </div>
 
   
   <script>
@@ -2239,6 +2254,172 @@
           if (res.success) abrirDetallePlazoFijo(idCuenta);
         })
         .catch(function(err) { alert('Error: ' + err.message); });
+    }
+      let correoRecuperacionActual = "";
+
+    function abrirPantallaRecuperar() {
+      document.getElementById('pantallaLogin').classList.remove('visible');
+      document.getElementById('pantallaRecuperar').style.display = 'flex';
+      renderPasoCorreoRecuperar();
+    }
+
+    function cerrarPantallaRecuperar() {
+      document.getElementById('pantallaRecuperar').style.display = 'none';
+      document.getElementById('pantallaLogin').classList.add('visible');
+    }
+
+    function renderPasoCorreoRecuperar() {
+      const cont = document.getElementById('contenidoRecuperar');
+      cont.innerHTML =
+        '<div class="titulo-recuperar">Recuperar contraseña</div>' +
+        '<div class="subtitulo-recuperar">Ingresa el correo con el que te registraste.</div>' +
+        '<div class="mensaje-error-recuperar" id="errorPaso1"></div>' +
+        '<div class="campo-recuperar">' +
+          '<label>Correo electrónico</label>' +
+          '<input type="email" id="inputCorreoRecuperar" placeholder="tucorreo@ejemplo.com">' +
+        '</div>' +
+        '<button class="btn-recuperar" id="btnContinuarPaso1">Continuar</button>' +
+        '<span class="link-volver-recuperar" onclick="cerrarPantallaRecuperar()">← Volver al inicio de sesión</span>';
+
+      document.getElementById('btnContinuarPaso1').addEventListener('click', function() {
+        const correo = document.getElementById('inputCorreoRecuperar').value.trim();
+        const err = document.getElementById('errorPaso1');
+        err.style.display = 'none';
+
+        if (!correo) { err.textContent = 'Ingresa tu correo'; err.style.display = 'block'; return; }
+
+        correoRecuperacionActual = correo;
+        renderPasoNombreRecuperar();
+      });
+    }
+
+    function renderPasoNombreRecuperar() {
+      const cont = document.getElementById('contenidoRecuperar');
+      cont.innerHTML =
+        '<div class="titulo-recuperar">Verifica tu identidad</div>' +
+        '<div class="subtitulo-recuperar">Ingresa tu primer nombre tal como está registrado.</div>' +
+        '<div class="mensaje-info-recuperar" id="infoPaso2"></div>' +
+        '<div class="mensaje-error-recuperar" id="errorPaso2"></div>' +
+        '<div class="campo-recuperar">' +
+          '<label>Primer nombre</label>' +
+          '<input type="text" id="inputNombreRecuperar" placeholder="Ej. GLORIA" style="text-transform:uppercase;" oninput="this.value = this.value.toUpperCase()">' +
+        '</div>' +
+        '<button class="btn-recuperar" id="btnContinuarPaso2">Enviar código</button>' +
+        '<span class="link-volver-recuperar" onclick="renderPasoCorreoRecuperar()">← Atrás</span>';
+
+      document.getElementById('btnContinuarPaso2').addEventListener('click', function() {
+        const btn = this;
+        const nombre = document.getElementById('inputNombreRecuperar').value.trim();
+        const err = document.getElementById('errorPaso2');
+        err.style.display = 'none';
+
+        if (!nombre) { err.textContent = 'Ingresa tu primer nombre'; err.style.display = 'block'; return; }
+
+        btn.disabled = true; btn.textContent = 'Enviando...';
+
+        llamarAppsScript('verificarNombreYEnviarCodigo', [correoRecuperacionActual, nombre])
+          .then(function(r) {
+            btn.disabled = false; btn.textContent = 'Enviar código';
+            if (!r.success) {
+              err.textContent = r.mensaje;
+              err.style.display = 'block';
+              return;
+            }
+            renderPasoCodigoRecuperar(r.mensaje);
+          })
+          .catch(function(errv) {
+            btn.disabled = false; btn.textContent = 'Enviar código';
+            alert('Error: ' + errv.message);
+          });
+      });
+    }
+
+    function renderPasoCodigoRecuperar(mensajeInfo) {
+      const cont = document.getElementById('contenidoRecuperar');
+      cont.innerHTML =
+        '<div class="titulo-recuperar">Ingresa el código</div>' +
+        '<div class="mensaje-info-recuperar" style="display:block;">' + mensajeInfo + '</div>' +
+        '<div class="mensaje-error-recuperar" id="errorPaso3"></div>' +
+        '<div class="campo-recuperar">' +
+          '<label>Código de 4 dígitos</label>' +
+          '<input type="text" id="inputCodigoRecuperar" maxlength="4" placeholder="0000" style="text-align:center; letter-spacing:6px; font-size:20px;">' +
+        '</div>' +
+        '<button class="btn-recuperar" id="btnContinuarPaso3">Verificar código</button>' +
+        '<span class="link-volver-recuperar" onclick="renderPasoNombreRecuperar()">← Atrás</span>';
+
+      document.getElementById('btnContinuarPaso3').addEventListener('click', function() {
+        const btn = this;
+        const codigo = document.getElementById('inputCodigoRecuperar').value.trim();
+        const err = document.getElementById('errorPaso3');
+        err.style.display = 'none';
+
+        if (!codigo) { err.textContent = 'Ingresa el código'; err.style.display = 'block'; return; }
+
+        btn.disabled = true; btn.textContent = 'Verificando...';
+
+        llamarAppsScript('verificarCodigoRecuperacion', [correoRecuperacionActual, codigo])
+          .then(function(r) {
+            btn.disabled = false; btn.textContent = 'Verificar código';
+            if (!r.success) {
+              err.textContent = r.mensaje;
+              err.style.display = 'block';
+              return;
+            }
+            renderPasoNuevaPasswordRecuperar(codigo);
+          })
+          .catch(function(errv) {
+            btn.disabled = false; btn.textContent = 'Verificar código';
+            alert('Error: ' + errv.message);
+          });
+      });
+    }
+
+    function renderPasoNuevaPasswordRecuperar(codigo) {
+      const cont = document.getElementById('contenidoRecuperar');
+      cont.innerHTML =
+        '<div class="titulo-recuperar">Nueva contraseña</div>' +
+        '<div class="mensaje-error-recuperar" id="errorPaso4"></div>' +
+        '<div class="campo-recuperar">' +
+          '<label>Nueva contraseña</label>' +
+          '<input type="password" id="inputNuevaPass1Recuperar">' +
+        '</div>' +
+        '<div class="campo-recuperar">' +
+          '<label>Confirma tu nueva contraseña</label>' +
+          '<input type="password" id="inputNuevaPass2Recuperar">' +
+        '</div>' +
+        '<button class="btn-recuperar" id="btnGuardarNuevaPassRecuperar">Guardar contraseña</button>';
+
+      let yaGuardado = false;
+
+      document.getElementById('btnGuardarNuevaPassRecuperar').addEventListener('click', function() {
+        if (yaGuardado) return;
+        const btn = this;
+        const p1 = document.getElementById('inputNuevaPass1Recuperar').value;
+        const p2 = document.getElementById('inputNuevaPass2Recuperar').value;
+        const err = document.getElementById('errorPaso4');
+        err.style.display = 'none';
+
+        if (p1.length < 6) { err.textContent = 'Mínimo 6 caracteres'; err.style.display = 'block'; return; }
+        if (p1 !== p2) { err.textContent = 'Las contraseñas no coinciden'; err.style.display = 'block'; return; }
+
+        btn.disabled = true; btn.textContent = 'Guardando...';
+
+        llamarAppsScript('aplicarNuevaPasswordRecuperacion', [correoRecuperacionActual, codigo, p1])
+          .then(function(r) {
+            if (!r.success) {
+              btn.disabled = false; btn.textContent = 'Guardar contraseña';
+              err.textContent = r.mensaje; err.style.display = 'block';
+              return;
+            }
+            yaGuardado = true;
+            alert('Contraseña actualizada. Ya puedes iniciar sesión.');
+            cerrarPantallaRecuperar();
+          })
+          .catch(function(errv) {
+            btn.disabled = false; btn.textContent = 'Guardar contraseña';
+            alert('Error: ' + errv.message);
+          });
+      });
     }
   </script>
 
