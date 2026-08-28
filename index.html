@@ -132,6 +132,24 @@
 
     .info-cuadrito { margin-top:10px; padding:10px 12px; background:#f4f7fb; border-radius:10px; font-size:12.5px; color:#333; display:none; }
     .info-cuadrito.visible { display:block; }
+        .card-select-pf { background:#fff; border:1.5px solid #D4AF37; border-radius:16px; padding:16px 18px; margin-bottom:12px; cursor:pointer; }
+    .card-select-pf .monto-pf { color:#003087; font-weight:800; font-size:19px; }
+    .card-select-pf .detalle-pf { color:#7a8699; font-size:12px; margin-top:4px; }
+    .badge-pf { display:inline-block; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; margin-top:8px; }
+    .badge-pf.activa { background:#e8eefc; color:#003087; }
+    .badge-pf.cumplido { background:#e8f5e9; color:#2e7d32; }
+
+    .card-interes-pf { background:linear-gradient(135deg,#003087,#001d54); border-radius:16px; padding:20px; margin-bottom:14px; color:#fff; }
+    .interes-label-pf { font-size:12px; opacity:0.85; }
+    .interes-monto-pf { font-size:28px; font-weight:800; color:#D4AF37; margin-top:4px; }
+    .interes-sub-pf { font-size:11.5px; opacity:0.75; margin-top:4px; }
+
+    .fila-botones-pf { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+    .btn-accion-pf { flex:1; min-width:100px; padding:13px 8px; border-radius:12px; border:none; font-weight:700; font-size:12.5px; cursor:pointer; text-align:center; }
+    .btn-retiro-pf-btn { background:linear-gradient(135deg,#003087,#001d54); color:#fff; }
+    .btn-retiro-pf-btn:disabled { background:#cfd6e0; color:#8a94a3; cursor:not-allowed; }
+    .btn-transferir-pf { background:#eef2fb; color:#003087; border:1px solid #003087; }
+    .btn-mov-pf { background:#f4f7fb; color:#555; border:1px solid #ddd; }
   </style>
 </head>
 <body>
@@ -309,7 +327,16 @@
       <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>
     </div>
   </div>
-
+  <!-- ===== PLAZO FIJO / INVERSIONES ===== -->
+  <div id="pantallaPlazoFijo" style="position:fixed; inset:0; background:#f7f9fc; display:none; flex-direction:column; z-index:55; font-family:'Segoe UI',Arial,sans-serif;">
+    <div style="background:linear-gradient(135deg,#003087,#001d54); padding:18px 20px; color:#fff; display:flex; align-items:center; gap:14px; flex-shrink:0;">
+      <button onclick="volverAlDashboardDesdePF()" style="background:rgba(255,255,255,0.12); border:none; width:34px; height:34px; border-radius:50%; color:#fff; font-size:16px; cursor:pointer;">←</button>
+      <div id="tituloHeaderPF" style="font-size:16px; font-weight:800;">Inversiones</div>
+    </div>
+    <div id="contenidoPF" style="flex:1; overflow-y:auto; padding:18px 16px 40px;">
+      <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>
+    </div>
+  </div>
 
   
 
@@ -896,8 +923,8 @@
         const destino = tab.getAttribute('data-tab');
                if (destino === 'creditos') abrirSeccionCreditos();
                if (destino === 'flexible') abrirSeccionFlexible();
-        if (destino === 'programado') abrirSeccionProgramado();
-        // 'inversiones' lo conectamos en el próximo paso
+                if (destino === 'programado') abrirSeccionProgramado();
+        if (destino === 'inversiones') abrirSeccionPlazoFijo();
       });
     });
 
@@ -1809,6 +1836,223 @@
     function copiarNumeroCuentaProg() {
       const numero = document.getElementById('numCuentaTxtProg').textContent;
       navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
+    }
+        let idPlazoFijoActual = null;
+
+    function volverAlDashboardDesdePF() {
+      document.getElementById('pantallaPlazoFijo').style.display = 'none';
+      document.getElementById('pantallaDashboard').style.display = 'flex';
+    }
+
+    function abrirSeccionPlazoFijo() {
+      document.getElementById('pantallaDashboard').style.display = 'none';
+      document.getElementById('pantallaPlazoFijo').style.display = 'flex';
+      document.getElementById('tituloHeaderPF').textContent = 'Inversiones';
+
+      const cont = document.getElementById('contenidoPF');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerPlazosFijos', [tokenSesion])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+
+          if (res.planes.length === 0) {
+            cont.innerHTML = '<div style="text-align:center; padding:50px 20px; color:#7a8699;">Aún no tienes depósitos a plazo fijo.<br>Acércate a la institución para abrir uno.</div>';
+            return;
+          }
+
+          if (res.planes.length === 1) {
+            abrirDetallePlazoFijo(res.planes[0].idCuenta);
+            return;
+          }
+
+          let html = '';
+          res.planes.forEach(function(p) {
+            const badge = p.estado === 'CUMPLIDO'
+              ? '<div class="badge-pf cumplido">CUMPLIDO</div>'
+              : '<div class="badge-pf activa">ACTIVO</div>';
+
+            html += '<div class="card-select-pf" onclick="abrirDetallePlazoFijo(\'' + p.idCuenta + '\')">' +
+                      '<div class="monto-pf">$' + p.montoDeposito.toFixed(2) + '</div>' +
+                      '<div class="detalle-pf">Tasa: ' + p.tasaInteres + '% · Vence: ' + p.fechaVencimiento + '</div>' +
+                      badge +
+                    '</div>';
+          });
+          cont.innerHTML = html;
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function abrirDetallePlazoFijo(idCuenta) {
+      idPlazoFijoActual = idCuenta;
+      document.getElementById('tituloHeaderPF').textContent = 'Detalle de inversión';
+
+      const cont = document.getElementById('contenidoPF');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerDetallePlazoFijo', [tokenSesion, idCuenta])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+          renderDetallePlazoFijo(res);
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function renderDetallePlazoFijo(p) {
+      const cont = document.getElementById('contenidoPF');
+
+      let avisoEstado = '';
+      if (p.estado === 'CUMPLIDO') {
+        avisoEstado = '<div style="background:#e8f5e9; color:#2e7d32; padding:14px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">✅ Este depósito ya se cumplió. Acércate a la institución para retirar tu capital.</div>';
+      }
+
+      const frecuenciaTexto = { MENSUAL: 'Mensual', TRIMESTRAL: 'Trimestral', VENCIMIENTO: 'Al vencimiento' }[p.frecuenciaPagoInteres];
+      const puedeRetirar = p.interesDisponibleRetiro > 0 && p.frecuenciaPagoInteres !== 'VENCIMIENTO' && p.estado === 'ACTIVA';
+
+      cont.innerHTML =
+        avisoEstado +
+        '<div class="card-interes-pf">' +
+          '<div class="interes-label-pf">Interés disponible para retirar</div>' +
+          '<div class="interes-monto-pf">$' + p.interesDisponibleRetiro.toFixed(2) + '</div>' +
+          '<div class="interes-sub-pf">Frecuencia de pago: ' + frecuenciaTexto + '</div>' +
+        '</div>' +
+        '<div class="card-cuenta-info">' +
+          '<div class="cuenta-numero-txt">Nro. ' + p.numeroCuenta + '</div>' +
+          '<div class="fila-dato-cuota" style="margin-top:10px;"><span>Monto depositado</span><b>$' + p.montoDeposito.toFixed(2) + '</b></div>' +
+          '<div class="fila-dato-cuota"><span>Tasa de interés</span><b>' + p.tasaInteres + '%</b></div>' +
+          '<div class="fila-dato-cuota"><span>Fecha apertura</span><b>' + p.fechaApertura + '</b></div>' +
+          '<div class="fila-dato-cuota"><span>Fecha vencimiento</span><b>' + p.fechaVencimiento + '</b></div>' +
+          '<div class="fila-dato-cuota"><span>Días restantes</span><b>' + p.diasRestantes + '</b></div>' +
+          (p.frecuenciaPagoInteres !== 'VENCIMIENTO' ? '<div class="fila-dato-cuota"><span>Próximo pago de interés</span><b>' + p.proximoPagoInteres + '</b></div>' : '') +
+        '</div>' +
+        '<div class="fila-botones-pf">' +
+          '<button class="btn-accion-pf btn-retiro-pf-btn" ' + (puedeRetirar ? 'onclick="abrirModalRetiroInteres(\'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💸 Retiro de interés</button>' +
+          '<button class="btn-accion-pf btn-transferir-pf" ' + (puedeRetirar ? 'onclick="confirmarTransferirPFaAhorros(\'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💳 A mi cta. Ahorros</button>' +
+          '<button class="btn-accion-pf btn-mov-pf" onclick="cargarMovimientosPF(\'' + p.idCuenta + '\')">📋 Movimientos</button>' +
+        '</div>' +
+        '<div id="zonaMovimientosPF"></div>';
+    }
+
+    function cargarMovimientosPF(idCuenta) {
+      const zona = document.getElementById('zonaMovimientosPF');
+      zona.innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerMovimientosPlazoFijo', [tokenSesion, idCuenta])
+        .then(function(res) {
+          if (!res.success) { zona.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { zona.innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+
+          let html = '<div class="titulo-movimientos">Movimientos</div>';
+          let fechaAnterior = null;
+
+          res.movimientos.forEach(function(m) {
+            if (m.fechaTexto !== fechaAnterior) {
+              html += '<div class="grupo-fecha-mov">' + m.fechaTexto + '</div>';
+              fechaAnterior = m.fechaTexto;
+            }
+
+            const esCredito = m.credito > 0;
+            const monto = esCredito ? m.credito : m.debito;
+            const claseMonto = esCredito ? 'positivo' : 'negativo';
+            const signo = esCredito ? '+' : '-';
+            const idUnico = 'movpf_' + m.idMovimiento.replace(/[^a-zA-Z0-9]/g, '');
+
+            html += '<div class="fila-mov" onclick="document.getElementById(\'' + idUnico + '\').classList.toggle(\'visible\')">' +
+                      '<div class="fila-mov-top">' +
+                        '<span class="fila-mov-concepto">' + m.concepto + '</span>' +
+                        '<span class="fila-mov-monto ' + claseMonto + '">' + signo + '$' + monto.toFixed(2) + '</span>' +
+                      '</div>' +
+                      '<div class="fila-mov-saldo">Saldo interés: $' + m.saldoResultante.toFixed(2) + '</div>' +
+                      '<div class="fila-mov-detalle" id="' + idUnico + '"><div><b>Fecha:</b> ' + m.fechaTexto + '</div></div>' +
+                    '</div>';
+          });
+
+          zona.innerHTML = html;
+        })
+        .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function abrirModalRetiroInteres(idCuenta, montoInteres) {
+      const cont = document.getElementById('contenidoPF');
+
+      cont.innerHTML =
+        '<div class="card-cuenta-info">' +
+          '<div class="titulo-movimientos" style="margin-top:0;">Retiro de interés</div>' +
+          '<div style="text-align:center; margin:20px 0;">' +
+            '<div style="font-size:12px; color:#7a8699;">Monto a retirar (retiro completo)</div>' +
+            '<div style="font-size:30px; font-weight:800; color:#003087;">$' + montoInteres.toFixed(2) + '</div>' +
+          '</div>' +
+          '<div id="zonaCuentaRetiroPF"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando datos de tu cuenta...</div></div>' +
+        '</div>';
+
+      llamarAppsScript('obtenerDatosCuentaPropiaSocio', [tokenSesion])
+        .then(function(res) {
+          const zona = document.getElementById('zonaCuentaRetiroPF');
+
+          if (!res.success) { zona.innerHTML = '<div style="color:#c0392b; font-size:13px; text-align:center;">Error: ' + (res.mensaje || 'desconocido') + '</div>'; return; }
+          if (!res.tieneCuenta) { zona.innerHTML = '<div style="color:#c0392b; font-size:13px; text-align:center;">No tienes una cuenta bancaria registrada. Comunícate con la institución.</div>'; return; }
+
+          zona.innerHTML =
+            '<div style="background:#f4f7fb; border-radius:12px; padding:14px; text-align:center; margin-bottom:14px;">Se acreditará a tu cuenta: <b>•••• ' + res.ultimos4 + '</b></div>' +
+            '<div id="avisoContactoPF" style="display:none; background:#fff3e0; color:#b8770a; padding:12px; border-radius:10px; font-size:12.5px; font-weight:600; text-align:center; margin-bottom:14px;">En breve un asesor se pondrá en contacto contigo.</div>' +
+            '<button id="btnDeseoOtraCuentaPF" style="width:100%; padding:11px; border:1px solid #003087; background:#fff; color:#003087; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; margin-bottom:10px;">¿No es tu cuenta actual? Deseo otra cuenta</button>' +
+            '<button id="btnEnviarRetiroPF" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">Enviar solicitud</button>';
+
+          let seEnvioAlgo = false;
+
+          document.getElementById('btnDeseoOtraCuentaPF').addEventListener('click', function() {
+            if (seEnvioAlgo) return;
+            seEnvioAlgo = true;
+            this.disabled = true;
+
+            const btnEnviar = document.getElementById('btnEnviarRetiroPF');
+            btnEnviar.disabled = true;
+            btnEnviar.style.opacity = '0.5';
+            btnEnviar.style.cursor = 'not-allowed';
+
+            llamarAppsScript('crearSolicitudContactoCuenta', [tokenSesion])
+              .then(function() { document.getElementById('avisoContactoPF').style.display = 'block'; })
+              .catch(function(err) { alert('Error: ' + err.message); });
+          });
+
+          document.getElementById('btnEnviarRetiroPF').addEventListener('click', function() {
+            if (seEnvioAlgo) return;
+            seEnvioAlgo = true;
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+            document.getElementById('btnDeseoOtraCuentaPF').disabled = true;
+
+            llamarAppsScript('crearSolicitudRetiroInteresPF', [tokenSesion, idCuenta])
+              .then(function(r) {
+                if (!r.success) {
+                  seEnvioAlgo = false;
+                  btn.disabled = false;
+                  btn.textContent = 'Enviar solicitud';
+                  document.getElementById('btnDeseoOtraCuentaPF').disabled = false;
+                  alert(r.mensaje);
+                  return;
+                }
+                alert(r.mensaje);
+                abrirDetallePlazoFijo(idCuenta);
+              })
+              .catch(function(err) { alert('Error: ' + err.message); });
+          });
+        })
+        .catch(function(err) {
+          document.getElementById('zonaCuentaRetiroPF').innerHTML = '<div style="color:red;">' + err.message + '</div>';
+        });
+    }
+
+    function confirmarTransferirPFaAhorros(idCuenta, monto) {
+      if (!confirm('¿Transferir $' + monto.toFixed(2) + ' de interés a tu cuenta de Ahorros a la Vista?')) return;
+
+      llamarAppsScript('transferirInteresPFaAhorros', [tokenSesion, idCuenta])
+        .then(function(res) {
+          alert(res.mensaje);
+          if (res.success) abrirDetallePlazoFijo(idCuenta);
+        })
+        .catch(function(err) { alert('Error: ' + err.message); });
     }
   </script>
 
