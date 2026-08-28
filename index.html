@@ -115,6 +115,23 @@
     .cuota-total-linea.pendiente { color:#003087; }
     .cuota-total-linea.mora { color:#c0392b; }
     .cuota-total-linea.pagado { color:#2e7d32; }
+
+        .card-select-plan { background:#fff; border:1.5px solid #D4AF37; border-radius:16px; padding:16px 18px; margin-bottom:12px; cursor:pointer; }
+    .card-select-plan .nombre-plan { color:#003087; font-weight:800; font-size:14.5px; }
+    .card-select-plan .detalle-plan { color:#7a8699; font-size:12px; margin-top:4px; }
+    .card-select-plan .saldo-plan { color:#D4AF37; font-weight:800; font-size:18px; margin-top:8px; }
+    .badge-plan { display:inline-block; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; margin-top:6px; }
+    .badge-plan.moroso { background:#fdeceb; color:#c0392b; }
+    .badge-plan.cumplido { background:#e8f5e9; color:#2e7d32; }
+
+    .grid-cuadritos-mes { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .cuadrito-mes { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid #ddd; color:#9aa5b5; background:#fff; }
+    .cuadrito-mes.pagado { background:#e8f5e9; border-color:#2e7d32; color:#2e7d32; }
+    .cuadrito-mes.actual { background:#eef2fb; border-color:#003087; color:#003087; }
+    .cuadrito-mes.atrasado { background:#fdeceb; border-color:#c0392b; color:#c0392b; }
+
+    .info-cuadrito { margin-top:10px; padding:10px 12px; background:#f4f7fb; border-radius:10px; font-size:12.5px; color:#333; display:none; }
+    .info-cuadrito.visible { display:block; }
   </style>
 </head>
 <body>
@@ -282,8 +299,19 @@
       <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>
     </div>
   </div>
+  <!-- ===== AHORRO PROGRAMADO ===== -->
+  <div id="pantallaProgramado" style="position:fixed; inset:0; background:#f7f9fc; display:none; flex-direction:column; z-index:55; font-family:'Segoe UI',Arial,sans-serif;">
+    <div style="background:linear-gradient(135deg,#003087,#001d54); padding:18px 20px; color:#fff; display:flex; align-items:center; gap:14px; flex-shrink:0;">
+      <button onclick="volverAlDashboardDesdeProgramado()" style="background:rgba(255,255,255,0.12); border:none; width:34px; height:34px; border-radius:50%; color:#fff; font-size:16px; cursor:pointer;">←</button>
+      <div id="tituloHeaderProg" style="font-size:16px; font-weight:800;">Ahorro Programado</div>
+    </div>
+    <div id="contenidoProgramado" style="flex:1; overflow-y:auto; padding:18px 16px 40px;">
+      <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>
+    </div>
+  </div>
 
 
+  
 
 
   
@@ -867,8 +895,9 @@
 
         const destino = tab.getAttribute('data-tab');
                if (destino === 'creditos') abrirSeccionCreditos();
-        if (destino === 'flexible') abrirSeccionFlexible();
-        // 'programado', 'inversiones' los conectamos en los próximos pasos
+               if (destino === 'flexible') abrirSeccionFlexible();
+        if (destino === 'programado') abrirSeccionProgramado();
+        // 'inversiones' lo conectamos en el próximo paso
       });
     });
 
@@ -1515,6 +1544,271 @@
             });
         })
         .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+        let idPlanProgramadoActual = null;
+
+    function volverAlDashboardDesdeProgramado() {
+      document.getElementById('pantallaProgramado').style.display = 'none';
+      document.getElementById('pantallaDashboard').style.display = 'flex';
+    }
+
+    function abrirSeccionProgramado() {
+      document.getElementById('pantallaDashboard').style.display = 'none';
+      document.getElementById('pantallaProgramado').style.display = 'flex';
+      document.getElementById('tituloHeaderProg').textContent = 'Ahorro Programado';
+
+      const cont = document.getElementById('contenidoProgramado');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerPlanesProgramados', [tokenSesion])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+
+          if (res.planes.length === 0) {
+            cont.innerHTML = '<div style="text-align:center; padding:50px 20px; color:#7a8699;">Aún no tienes un ahorro programado.<br>Acércate a la institución para abrir uno.</div>';
+            return;
+          }
+
+          if (res.planes.length === 1) {
+            abrirDetallePlanProgramado(res.planes[0].idCuenta);
+            return;
+          }
+
+          let html = '';
+          res.planes.forEach(function(p) {
+            let badge = '';
+            if (p.estado === 'MOROSO') badge = '<div class="badge-plan moroso">MOROSO</div>';
+            if (p.estado === 'CUMPLIDO') badge = '<div class="badge-plan cumplido">CUMPLIDO</div>';
+
+            html += '<div class="card-select-plan" onclick="abrirDetallePlanProgramado(\'' + p.idCuenta + '\')">' +
+                      '<div class="nombre-plan">' + p.nombrePlan + '</div>' +
+                      '<div class="detalle-plan">Cuota mensual: $' + p.cuotaMensual.toFixed(2) + ' · Plazo: ' + p.plazoMeses + ' meses</div>' +
+                      '<div class="saldo-plan">$' + p.saldoActual.toFixed(2) + '</div>' +
+                      badge +
+                    '</div>';
+          });
+          cont.innerHTML = html;
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function abrirDetallePlanProgramado(idCuenta) {
+      idPlanProgramadoActual = idCuenta;
+      document.getElementById('tituloHeaderProg').textContent = 'Detalle del plan';
+
+      const cont = document.getElementById('contenidoProgramado');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerDetallePlanProgramado', [tokenSesion, idCuenta])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+          renderDetallePlanProgramado(res);
+          cargarMovimientosProgramado(idCuenta);
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function renderDetallePlanProgramado(p) {
+      const cont = document.getElementById('contenidoProgramado');
+
+      let avisoEstado = '';
+      let botonAportar = '<button class="btn-accion-ahorro btn-acreditar" style="width:100%;" onclick="abrirModalAportarProgramado(' + p.cuotaMensual + ', ' + p.estaAtrasado + ')">💰 Aportar</button>';
+
+      if (p.estado === 'MOROSO') {
+        avisoEstado = '<div style="background:#fdeceb; color:#c0392b; padding:14px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">⚠️ Tu plan está en mora. Acércate a la institución para reactivarlo.</div>';
+        botonAportar = '';
+      } else if (p.estado === 'CUMPLIDO') {
+        avisoEstado = '<div style="background:#e8f5e9; color:#2e7d32; padding:14px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">✅ Tu plan se cumplió. Acércate a la institución para retirar tus fondos.</div>';
+        botonAportar = '';
+      } else if (p.estaAtrasado) {
+        avisoEstado = '<div style="background:#fff3e0; color:#b8770a; padding:14px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">⏰ Tienes un aporte atrasado este mes.</div>';
+      }
+
+      let cuadritosHTML = '';
+      for (let m = 1; m <= p.plazoMeses; m++) {
+        let clase = '';
+        if (m <= p.mesesAportados) clase = 'pagado';
+        else if (m === p.mesesAportados + 1 && m <= p.mesesTranscurridos) clase = 'atrasado';
+        else if (m === p.mesesAportados + 1) clase = 'actual';
+
+        cuadritosHTML += '<div class="cuadrito-mes ' + clase + '" onclick="mostrarInfoCuadrito(' + m + ', \'' + clase + '\')">' + m + '</div>';
+      }
+
+      cont.innerHTML =
+        '<div class="card-saldo-ahorro">' +
+          '<div class="saldo-grande-ahorro"><span id="saldoProgTxt">$' + p.saldoActual.toFixed(2) + '</span><span class="ojo-ahorro" onclick="toggleSaldoProg()">👁️</span></div>' +
+          '<div class="disponible-txt">Disponible</div>' +
+        '</div>' +
+        avisoEstado +
+        '<div class="card-cuenta-info">' +
+          '<div class="cuenta-numero-txt">' + p.nombrePlan + '</div>' +
+          '<div class="cuenta-tipo-txt">Nro. ' + p.numeroCuenta + '</div>' +
+          '<div class="fila-dato-cuota" style="margin-top:10px;"><span>Cuota mensual</span><b>$' + p.cuotaMensual.toFixed(2) + '</b></div>' +
+          '<div class="fila-dato-cuota"><span>Plazo</span><b>' + p.plazoMeses + ' meses</b></div>' +
+          '<div class="fila-dato-cuota"><span>Vencimiento</span><b>' + p.fechaVencimiento + '</b></div>' +
+        '</div>' +
+        (botonAportar ? '<div style="margin-bottom:18px;">' + botonAportar + '</div>' : '') +
+        '<div id="zonaAportarProgramado"></div>' +
+        '<div class="titulo-movimientos">Progreso de aportes</div>' +
+        '<div class="grid-cuadritos-mes">' + cuadritosHTML + '</div>' +
+        '<div class="info-cuadrito" id="infoCuadritoTxt"></div>' +
+        '<div class="titulo-movimientos" style="margin-top:20px;">Movimientos</div>' +
+        '<div id="listaMovimientosProgramado"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div></div>';
+    }
+
+    function mostrarInfoCuadrito(mes, clase) {
+      const info = document.getElementById('infoCuadritoTxt');
+      let texto = 'Mes ' + mes + ': ';
+      if (clase === 'pagado') texto += 'Aportado ✅';
+      else if (clase === 'atrasado') texto += 'Atrasado ⚠️';
+      else if (clase === 'actual') texto += 'Mes actual, pendiente de aportar';
+      else texto += 'Aún no llega este mes';
+
+      info.textContent = texto;
+      info.classList.add('visible');
+    }
+
+    function toggleSaldoProg() {
+      document.getElementById('saldoProgTxt').classList.toggle('saldo-oculto');
+    }
+
+    function cargarMovimientosProgramado(idCuenta) {
+      llamarAppsScript('obtenerMovimientosProgramado', [tokenSesion, idCuenta])
+        .then(function(res) {
+          const cont = document.getElementById('listaMovimientosProgramado');
+          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+
+          let html = '';
+          let fechaAnterior = null;
+
+          res.movimientos.forEach(function(m) {
+            if (m.fechaTexto !== fechaAnterior) {
+              html += '<div class="grupo-fecha-mov">' + m.fechaTexto + '</div>';
+              fechaAnterior = m.fechaTexto;
+            }
+
+            const esCredito = m.credito > 0;
+            const monto = esCredito ? m.credito : m.debito;
+            const claseMonto = esCredito ? 'positivo' : 'negativo';
+            const signo = esCredito ? '+' : '-';
+            const idUnico = 'movprog_' + m.idMovimiento.replace(/[^a-zA-Z0-9]/g, '');
+
+            html += '<div class="fila-mov" onclick="document.getElementById(\'' + idUnico + '\').classList.toggle(\'visible\')">' +
+                      '<div class="fila-mov-top">' +
+                        '<span class="fila-mov-concepto">' + m.concepto + '</span>' +
+                        '<span class="fila-mov-monto ' + claseMonto + '">' + signo + '$' + monto.toFixed(2) + '</span>' +
+                      '</div>' +
+                      '<div class="fila-mov-saldo">Saldo: $' + m.saldoResultante.toFixed(2) + '</div>' +
+                      '<div class="fila-mov-detalle" id="' + idUnico + '">' +
+                        '<div><b>Fecha:</b> ' + m.fechaTexto + '</div>' +
+                        '<div><b>Saldo después:</b> $' + m.saldoResultante.toFixed(2) + '</div>' +
+                      '</div>' +
+                    '</div>';
+          });
+
+          cont.innerHTML = html;
+        })
+        .catch(function(err) {
+          document.getElementById('listaMovimientosProgramado').innerHTML = '<div style="color:red;">' + err.message + '</div>';
+        });
+    }
+
+    function abrirModalAportarProgramado(cuotaMensual, estaAtrasado) {
+      const zona = document.getElementById('zonaAportarProgramado');
+      const hoy = new Date().toISOString().split('T')[0];
+
+      const avisoTexto = estaAtrasado
+        ? 'Puedes aportar cualquier monto hasta $' + cuotaMensual.toFixed(2) + ', o un múltiplo exacto para adelantar meses.'
+        : 'Debes aportar exactamente $' + cuotaMensual.toFixed(2) + ', o un múltiplo exacto para adelantar meses.';
+
+      zona.innerHTML =
+        '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-bottom:14px; border:1.5px solid #D4AF37;">' +
+          '<div style="display:flex; gap:8px; margin-bottom:14px;">' +
+            '<button id="tabCuentaProg" class="tab-producto-dash activo" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; cursor:pointer;" onclick="cambiarTabPagoProg(\'cuenta\')">🏦 Cuenta</button>' +
+            '<button id="tabQRProg" class="tab-producto-dash" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; cursor:pointer;" onclick="cambiarTabPagoProg(\'qr\')">📱 QR</button>' +
+          '</div>' +
+          '<div id="panelCuentaProg">' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:8px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<div class="fila-dato-cuota"><span>Banco</span><b>Pichincha</b></div>' +
+            '<div class="fila-dato-cuota"><span>Tipo</span><b>Ahorro transaccional</b></div>' +
+            '<div class="fila-dato-cuota"><span>Número</span><b id="numCuentaTxtProg">2207263686</b></div>' +
+            '<button onclick="copiarNumeroCuentaProg()" style="margin-top:8px; padding:9px 14px; border:1px solid #003087; background:#eef2fb; color:#003087; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer;">📋 Copiar número</button>' +
+          '</div>' +
+          '<div id="panelQRProg" style="display:none; text-align:center;">' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:10px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<img src="https://i.ibb.co/tMRrt2dN/qr.png" style="width:100%; max-width:220px; border-radius:12px; border:1px solid #eee;">' +
+            '<div style="font-size:12px; color:#7a8699; margin-top:8px;">Escanea para transferir</div>' +
+          '</div>' +
+          '<div style="margin-top:18px; border-top:1px dashed #ddd; padding-top:14px;">' +
+            '<div style="background:#f4f7fb; border-radius:10px; padding:10px 12px; font-size:12px; color:#555; margin-bottom:12px;">' + avisoTexto + '</div>' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">Monto a aportar</label>' +
+            '<input type="number" id="inputMontoProg" min="0.01" step="0.01" value="' + cuotaMensual.toFixed(2) + '" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<div id="avisoMinimoProg" style="display:none; color:#c0392b; font-size:12px; font-weight:600; margin-bottom:10px;"></div>' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">Fecha de transferencia</label>' +
+            '<input type="date" id="inputFechaProg" value="' + hoy + '" max="' + hoy + '" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de comprobante</label>' +
+            '<input type="text" id="inputComprobanteProg" placeholder="Ej. 123456789" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de cuenta desde donde transferiste</label>' +
+            '<input type="text" id="inputCuentaOrigenProg" placeholder="Ej. 2200123456" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<button id="btnEnviarSolicitudProg" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;">Enviar solicitud</button>' +
+          '</div>' +
+        '</div>';
+
+      llamarAppsScript('obtenerNumeroCuentaSocio', [tokenSesion])
+        .then(function(res) {
+          if (res.success && res.numeroCuenta) document.getElementById('inputCuentaOrigenProg').value = res.numeroCuenta;
+        })
+        .catch(function() {});
+
+      let solicitudEnviadaProg = false;
+
+      document.getElementById('btnEnviarSolicitudProg').addEventListener('click', function() {
+        if (solicitudEnviadaProg) return;
+
+        const monto = parseFloat(document.getElementById('inputMontoProg').value) || 0;
+        const fecha = document.getElementById('inputFechaProg').value;
+        const comprobante = document.getElementById('inputComprobanteProg').value.trim();
+        const cuentaOrigen = document.getElementById('inputCuentaOrigenProg').value.trim();
+        const btn = this;
+
+        if (monto <= 0) { alert('Ingresa un monto válido'); return; }
+        if (!comprobante) { alert('Ingresa el número de comprobante'); return; }
+        if (!cuentaOrigen) { alert('Ingresa el número de cuenta desde donde transferiste'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+
+        llamarAppsScript('crearSolicitudAporteProgramado', [tokenSesion, idPlanProgramadoActual, monto, fecha, comprobante, cuentaOrigen])
+          .then(function(res) {
+            if (!res.success) {
+              btn.disabled = false; btn.textContent = 'Enviar solicitud';
+              document.getElementById('avisoMinimoProg').textContent = res.mensaje;
+              document.getElementById('avisoMinimoProg').style.display = 'block';
+              return;
+            }
+            solicitudEnviadaProg = true;
+            alert(res.mensaje);
+            abrirDetallePlanProgramado(idPlanProgramadoActual);
+          })
+          .catch(function(err) {
+            btn.disabled = false; btn.textContent = 'Enviar solicitud';
+            alert('Error: ' + err.message);
+          });
+      });
+    }
+
+    function cambiarTabPagoProg(tab) {
+      document.getElementById('tabCuentaProg').classList.toggle('activo', tab === 'cuenta');
+      document.getElementById('tabQRProg').classList.toggle('activo', tab === 'qr');
+      document.getElementById('panelCuentaProg').style.display = (tab === 'cuenta') ? 'block' : 'none';
+      document.getElementById('panelQRProg').style.display = (tab === 'qr') ? 'block' : 'none';
+    }
+
+    function copiarNumeroCuentaProg() {
+      const numero = document.getElementById('numCuentaTxtProg').textContent;
+      navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
     }
   </script>
 
