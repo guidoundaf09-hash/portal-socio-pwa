@@ -272,7 +272,16 @@
   </div>
 
 
-
+  <!-- ===== AHORRO FLEXIBLE ===== -->
+  <div id="pantallaFlexible" style="position:fixed; inset:0; background:#f7f9fc; display:none; flex-direction:column; z-index:55; font-family:'Segoe UI',Arial,sans-serif;">
+    <div style="background:linear-gradient(135deg,#003087,#001d54); padding:18px 20px; color:#fff; display:flex; align-items:center; gap:14px; flex-shrink:0;">
+      <button onclick="volverAlDashboardDesdeFlexible()" style="background:rgba(255,255,255,0.12); border:none; width:34px; height:34px; border-radius:50%; color:#fff; font-size:16px; cursor:pointer;">←</button>
+      <div style="font-size:16px; font-weight:800;">Ahorro Flexible</div>
+    </div>
+    <div id="contenidoFlexible" style="flex:1; overflow-y:auto; padding:18px 16px 40px;">
+      <div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>
+    </div>
+  </div>
 
 
 
@@ -857,8 +866,9 @@
         tab.classList.add('activo');
 
         const destino = tab.getAttribute('data-tab');
-        if (destino === 'creditos') abrirSeccionCreditos();
-        // 'flexible', 'programado', 'inversiones' los conectamos en los próximos pasos
+               if (destino === 'creditos') abrirSeccionCreditos();
+        if (destino === 'flexible') abrirSeccionFlexible();
+        // 'programado', 'inversiones' los conectamos en los próximos pasos
       });
     });
 
@@ -1137,6 +1147,374 @@
     function copiarNumeroCuenta() {
       const numero = document.getElementById('numCuentaTxt').textContent;
       navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
+    }
+
+
+        let cuentaFlexibleActual = null;
+
+    function volverAlDashboardDesdeFlexible() {
+      document.getElementById('pantallaFlexible').style.display = 'none';
+      document.getElementById('pantallaDashboard').style.display = 'flex';
+    }
+
+    function abrirSeccionFlexible() {
+      document.getElementById('pantallaDashboard').style.display = 'none';
+      document.getElementById('pantallaFlexible').style.display = 'flex';
+
+      const cont = document.getElementById('contenidoFlexible');
+      cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerCuentaFlexible', [tokenSesion])
+        .then(function(res) {
+          if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
+
+          if (!res.tieneCuenta) {
+            cont.innerHTML = '<div style="text-align:center; padding:50px 20px; color:#7a8699;">Aún no tienes una cuenta de ahorro flexible activa.<br>Acércate a la institución para poder adquirir una.</div>';
+            return;
+          }
+
+          cuentaFlexibleActual = res;
+          renderPantallaFlexible(res);
+          cargarMovimientosFlexible(res.idCuenta);
+        })
+        .catch(function(err) { cont.innerHTML = '<div style="color:red; padding:20px;">' + err.message + '</div>'; });
+    }
+
+    function renderPantallaFlexible(c) {
+      const cont = document.getElementById('contenidoFlexible');
+      cont.innerHTML =
+        '<div class="card-saldo-ahorro">' +
+          '<div class="saldo-grande-ahorro"><span id="saldoFlexibleTxt">$' + c.saldoActual.toFixed(2) + '</span><span class="ojo-ahorro" onclick="toggleSaldoFlexible()">👁️</span></div>' +
+          '<div class="disponible-txt">Disponible</div>' +
+        '</div>' +
+        '<div class="card-cuenta-info">' +
+          '<div class="cuenta-info-fila">' +
+            '<div>' +
+              '<div class="cuenta-numero-txt">Nro. ' + c.numeroCuenta + '</div>' +
+              '<div class="cuenta-tipo-txt">' + c.nombreProducto + '</div>' +
+            '</div>' +
+            '<button class="btn-compartir-cuenta" onclick="compartirCuentaFlexible()">🔗 Compartir</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fila-botones-ahorro">' +
+          '<button class="btn-accion-ahorro btn-acreditar" onclick="abrirModalAcreditarFlexible()">💰 Acreditar cuenta</button>' +
+          '<button class="btn-accion-ahorro btn-transferir-mis" onclick="abrirModalTransferirFlexible(\'' + c.idCuenta + '\')">💳 A mi cta. Ahorros</button>' +
+        '</div>' +
+        '<div class="fila-botones-ahorro">' +
+          '<button class="btn-accion-ahorro btn-retiro-pf" style="width:100%;" onclick="abrirModalRetiroFlexible(\'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar (banco externo)</button>' +
+        '</div>' +
+        '<div class="titulo-movimientos">Movimientos</div>' +
+        '<div id="listaMovimientosFlexible"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div></div>' +
+        '<div id="zonaAcreditarFlexible"></div>';
+    }
+
+    function toggleSaldoFlexible() {
+      document.getElementById('saldoFlexibleTxt').classList.toggle('saldo-oculto');
+    }
+
+    function compartirCuentaFlexible() {
+      const texto = 'Mi número de cuenta en Caja de Ahorros Unión y Progreso: ' + cuentaFlexibleActual.numeroCuenta;
+      if (navigator.share) {
+        navigator.share({ text: texto }).catch(function() {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(texto).then(function() { alert('Copiado: ' + texto); });
+      } else {
+        alert(texto);
+      }
+    }
+
+    function cargarMovimientosFlexible(idCuenta) {
+      llamarAppsScript('obtenerMovimientosFlexible', [tokenSesion, idCuenta])
+        .then(function(res) {
+          const cont = document.getElementById('listaMovimientosFlexible');
+          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+
+          let html = '';
+          let fechaAnterior = null;
+
+          res.movimientos.forEach(function(m) {
+            if (m.fechaTexto !== fechaAnterior) {
+              html += '<div class="grupo-fecha-mov">' + m.fechaTexto + '</div>';
+              fechaAnterior = m.fechaTexto;
+            }
+
+            const esCredito = m.credito > 0;
+            const monto = esCredito ? m.credito : m.debito;
+            const claseMonto = esCredito ? 'positivo' : 'negativo';
+            const signo = esCredito ? '+' : '-';
+            const idUnico = 'movflex_' + m.idMovimiento.replace(/[^a-zA-Z0-9]/g, '');
+
+            html += '<div class="fila-mov" onclick="document.getElementById(\'' + idUnico + '\').classList.toggle(\'visible\')">' +
+                      '<div class="fila-mov-top">' +
+                        '<span class="fila-mov-concepto">Transf. ' + m.concepto + '</span>' +
+                        '<span class="fila-mov-monto ' + claseMonto + '">' + signo + '$' + monto.toFixed(2) + '</span>' +
+                      '</div>' +
+                      '<div class="fila-mov-saldo">$' + m.saldoResultante.toFixed(2) + '</div>' +
+                      '<div class="fila-mov-detalle" id="' + idUnico + '">' +
+                        '<div><b>Concepto:</b> ' + m.concepto + '</div>' +
+                        '<div><b>Fecha:</b> ' + m.fechaTexto + '</div>' +
+                        (esCredito ? '<div><b>Depositado:</b> $' + m.credito.toFixed(2) + '</div>' : '<div><b>Retirado:</b> $' + m.debito.toFixed(2) + '</div>') +
+                        '<div><b>Saldo después:</b> $' + m.saldoResultante.toFixed(2) + '</div>' +
+                      '</div>' +
+                    '</div>';
+          });
+
+          cont.innerHTML = html;
+        })
+        .catch(function(err) {
+          document.getElementById('listaMovimientosFlexible').innerHTML = '<div style="color:red;">' + err.message + '</div>';
+        });
+    }
+
+    function abrirModalAcreditarFlexible() {
+      const zona = document.getElementById('zonaAcreditarFlexible');
+      const hoy = new Date().toISOString().split('T')[0];
+
+      zona.innerHTML =
+        '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-top:14px; border:1.5px solid #D4AF37;">' +
+          '<div style="display:flex; gap:8px; margin-bottom:14px;">' +
+            '<button id="tabCuentaFlex" class="tab-producto-dash activo" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; cursor:pointer;" onclick="cambiarTabPagoFlex(\'cuenta\')">🏦 Cuenta</button>' +
+            '<button id="tabQRFlex" class="tab-producto-dash" style="flex:1; padding:9px; border-radius:20px; border:1.5px solid #003087; background:#fff; color:#003087; cursor:pointer;" onclick="cambiarTabPagoFlex(\'qr\')">📱 QR</button>' +
+          '</div>' +
+          '<div id="panelCuentaFlex">' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:8px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<div class="fila-dato-cuota"><span>Banco</span><b>Pichincha</b></div>' +
+            '<div class="fila-dato-cuota"><span>Tipo</span><b>Ahorro transaccional</b></div>' +
+            '<div class="fila-dato-cuota"><span>Número</span><b id="numCuentaTxtFlex">2207263686</b></div>' +
+            '<button onclick="copiarNumeroCuentaFlex()" style="margin-top:8px; padding:9px 14px; border:1px solid #003087; background:#eef2fb; color:#003087; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer;">📋 Copiar número</button>' +
+          '</div>' +
+          '<div id="panelQRFlex" style="display:none; text-align:center;">' +
+            '<div style="font-weight:800; color:#003087; margin-bottom:10px;">UNDA LLOACANA JENDRY EDUARDO</div>' +
+            '<img src="https://i.ibb.co/tMRrt2dN/qr.png" style="width:100%; max-width:220px; border-radius:12px; border:1px solid #eee;">' +
+            '<div style="font-size:12px; color:#7a8699; margin-top:8px;">Escanea para transferir</div>' +
+          '</div>' +
+          '<div style="margin-top:18px; border-top:1px dashed #ddd; padding-top:14px;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">Monto a acreditar (mínimo $1.00)</label>' +
+            '<input type="number" id="inputMontoFlex" min="1" step="0.01" placeholder="0.00" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<div id="avisoMinimoFlex" style="display:none; color:#c0392b; font-size:12px; font-weight:600; margin-bottom:10px;">El monto mínimo es $1.00</div>' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">Fecha de transferencia</label>' +
+            '<input type="date" id="inputFechaFlex" value="' + hoy + '" max="' + hoy + '" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de comprobante</label>' +
+            '<input type="text" id="inputComprobanteFlex" placeholder="Ej. 123456789" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin:10px 0 6px;">N° de cuenta desde donde transferiste</label>' +
+            '<input type="text" id="inputCuentaOrigenFlex" placeholder="Ej. 2200123456" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+            '<button id="btnEnviarSolicitudFlex" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;">Enviar solicitud</button>' +
+          '</div>' +
+        '</div>';
+
+      llamarAppsScript('obtenerNumeroCuentaSocio', [tokenSesion])
+        .then(function(res) {
+          if (res.success && res.numeroCuenta) document.getElementById('inputCuentaOrigenFlex').value = res.numeroCuenta;
+        })
+        .catch(function() {});
+
+      let solicitudEnviadaFlex = false;
+
+      document.getElementById('btnEnviarSolicitudFlex').addEventListener('click', function() {
+        if (solicitudEnviadaFlex) return;
+
+        const monto = parseFloat(document.getElementById('inputMontoFlex').value) || 0;
+        const fecha = document.getElementById('inputFechaFlex').value;
+        const comprobante = document.getElementById('inputComprobanteFlex').value.trim();
+        const cuentaOrigen = document.getElementById('inputCuentaOrigenFlex').value.trim();
+        const btn = this;
+
+        if (monto < 1) { document.getElementById('avisoMinimoFlex').style.display = 'block'; return; }
+        if (!comprobante) { alert('Ingresa el número de comprobante'); return; }
+        if (!cuentaOrigen) { alert('Ingresa el número de cuenta desde donde transferiste'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+
+        llamarAppsScript('crearSolicitudDepositoFlexible', [tokenSesion, cuentaFlexibleActual.idCuenta, monto, fecha, comprobante, cuentaOrigen])
+          .then(function(res) {
+            if (!res.success) {
+              btn.disabled = false; btn.textContent = 'Enviar solicitud';
+              alert(res.mensaje);
+              return;
+            }
+            solicitudEnviadaFlex = true;
+            alert(res.mensaje);
+            abrirSeccionFlexible();
+          })
+          .catch(function(err) {
+            btn.disabled = false; btn.textContent = 'Enviar solicitud';
+            alert('Error: ' + err.message);
+          });
+      });
+    }
+
+    function cambiarTabPagoFlex(tab) {
+      document.getElementById('tabCuentaFlex').classList.toggle('activo', tab === 'cuenta');
+      document.getElementById('tabQRFlex').classList.toggle('activo', tab === 'qr');
+      document.getElementById('panelCuentaFlex').style.display = (tab === 'cuenta') ? 'block' : 'none';
+      document.getElementById('panelQRFlex').style.display = (tab === 'qr') ? 'block' : 'none';
+    }
+
+    function copiarNumeroCuentaFlex() {
+      const numero = document.getElementById('numCuentaTxtFlex').textContent;
+      navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
+    }
+
+    function abrirModalTransferirFlexible(idCuenta) {
+      const zona = document.getElementById('zonaAcreditarFlexible');
+      zona.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerSaldoMinimoFlexibleSocio', [tokenSesion, idCuenta])
+        .then(function(res) {
+          if (!res.success) { zona.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+
+          if (res.maximoTransferible <= 0) {
+            zona.innerHTML = '<div style="background:#fff3e0; color:#b8770a; padding:14px; border-radius:12px; font-size:13px; text-align:center;">No tienes saldo disponible para transferir (debes mantener el mínimo de $' + res.saldoMinimo.toFixed(2) + ').</div>';
+            return;
+          }
+
+          zona.innerHTML =
+            '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-top:14px; border:1.5px solid #D4AF37;">' +
+              '<div style="font-weight:800; color:#003087; margin-bottom:8px;">Transferir a mi cuenta de Ahorros a la Vista</div>' +
+              '<div style="font-size:12px; color:#7a8699; margin-bottom:14px;">Máximo disponible: $' + res.maximoTransferible.toFixed(2) + ' (saldo mínimo requerido: $' + res.saldoMinimo.toFixed(2) + ')</div>' +
+              '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">Monto a transferir</label>' +
+              '<input type="number" id="inputMontoTransferirFlex" min="0.01" max="' + res.maximoTransferible + '" step="0.01" placeholder="0.00" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+              '<div id="avisoMontoTransferirFlex" style="display:none; color:#c0392b; font-size:12px; font-weight:600; margin-bottom:10px;"></div>' +
+              '<button id="btnConfirmarTransferirFlex" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">Transferir</button>' +
+            '</div>';
+
+          let yaEnviado = false;
+          document.getElementById('btnConfirmarTransferirFlex').addEventListener('click', function() {
+            if (yaEnviado) return;
+            const monto = parseFloat(document.getElementById('inputMontoTransferirFlex').value) || 0;
+            const aviso = document.getElementById('avisoMontoTransferirFlex');
+
+            if (monto <= 0 || monto > res.maximoTransferible + 0.01) {
+              aviso.textContent = 'Monto inválido. Máximo: $' + res.maximoTransferible.toFixed(2);
+              aviso.style.display = 'block';
+              return;
+            }
+            aviso.style.display = 'none';
+
+            yaEnviado = true;
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            llamarAppsScript('crearSolicitudTransferenciaFlexAhorro', [tokenSesion, idCuenta, monto])
+              .then(function(r) {
+                if (!r.success) {
+                  yaEnviado = false;
+                  btn.disabled = false;
+                  btn.textContent = 'Transferir';
+                  aviso.textContent = r.mensaje;
+                  aviso.style.display = 'block';
+                  return;
+                }
+                alert(r.mensaje);
+                abrirSeccionFlexible();
+              })
+              .catch(function(err) {
+                yaEnviado = false;
+                btn.disabled = false;
+                btn.textContent = 'Transferir';
+                alert('Error: ' + err.message);
+              });
+          });
+        })
+        .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
+    }
+
+    function abrirModalRetiroFlexible(idCuenta, saldoActual) {
+      const zona = document.getElementById('zonaAcreditarFlexible');
+      zona.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
+
+      llamarAppsScript('obtenerSaldoMinimoFlexibleSocio', [tokenSesion, idCuenta])
+        .then(function(res) {
+          if (!res.success) { zona.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+
+          if (res.maximoTransferible <= 0) {
+            zona.innerHTML = '<div style="background:#fff3e0; color:#b8770a; padding:14px; border-radius:12px; font-size:13px; text-align:center;">No tienes saldo disponible para retirar (debes mantener el mínimo de $' + res.saldoMinimo.toFixed(2) + ').</div>';
+            return;
+          }
+
+          zona.innerHTML =
+            '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-top:14px; border:1.5px solid #D4AF37;">' +
+              '<div style="font-weight:800; color:#003087; margin-bottom:8px;">Retiro a banco externo</div>' +
+              '<div style="font-size:12px; color:#7a8699; margin-bottom:14px;">Máximo disponible: $' + res.maximoTransferible.toFixed(2) + ' (saldo mínimo requerido: $' + res.saldoMinimo.toFixed(2) + ')</div>' +
+              '<label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">Monto a retirar</label>' +
+              '<input type="number" id="inputMontoRetiroFlex" min="0.01" max="' + res.maximoTransferible + '" step="0.01" placeholder="0.00" style="width:100%; padding:12px 14px; border:1.5px solid #dde3ec; border-radius:12px; font-size:15px; margin-bottom:6px; box-sizing:border-box;">' +
+              '<div id="avisoMontoRetiroFlex" style="display:none; color:#c0392b; font-size:12px; font-weight:600; margin-bottom:10px;"></div>' +
+              '<div id="zonaCuentaRetiroFlex"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando datos de tu cuenta...</div></div>' +
+            '</div>';
+
+          llamarAppsScript('obtenerDatosCuentaPropiaSocio', [tokenSesion])
+            .then(function(resCuenta) {
+              const zonaCuenta = document.getElementById('zonaCuentaRetiroFlex');
+
+              if (!resCuenta.success) { zonaCuenta.innerHTML = '<div style="color:#c0392b; font-size:13px; text-align:center;">Error: ' + (resCuenta.mensaje || 'desconocido') + '</div>'; return; }
+              if (!resCuenta.tieneCuenta) { zonaCuenta.innerHTML = '<div style="color:#c0392b; font-size:13px; text-align:center;">No tienes una cuenta bancaria registrada. Comunícate con la institución.</div>'; return; }
+
+              zonaCuenta.innerHTML =
+                '<div style="background:#f4f7fb; border-radius:12px; padding:14px; text-align:center; margin-bottom:14px;">Se acreditará a tu cuenta: <b>•••• ' + resCuenta.ultimos4 + '</b></div>' +
+                '<div id="avisoContactoFlex" style="display:none; background:#fff3e0; color:#b8770a; padding:12px; border-radius:10px; font-size:12.5px; font-weight:600; text-align:center; margin-bottom:14px;">En breve un asesor se pondrá en contacto contigo.</div>' +
+                '<button id="btnDeseoOtraCuentaFlex" style="width:100%; padding:11px; border:1px solid #003087; background:#fff; color:#003087; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; margin-bottom:10px;">¿No es tu cuenta actual? Deseo otra cuenta</button>' +
+                '<button id="btnEnviarRetiroFlex" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">Enviar solicitud</button>';
+
+              let seEnvioAlgo = false;
+
+              document.getElementById('btnDeseoOtraCuentaFlex').addEventListener('click', function() {
+                if (seEnvioAlgo) return;
+                seEnvioAlgo = true;
+                this.disabled = true;
+
+                const btnEnviar = document.getElementById('btnEnviarRetiroFlex');
+                btnEnviar.disabled = true;
+                btnEnviar.style.opacity = '0.5';
+                btnEnviar.style.cursor = 'not-allowed';
+
+                llamarAppsScript('crearSolicitudContactoCuenta', [tokenSesion])
+                  .then(function() { document.getElementById('avisoContactoFlex').style.display = 'block'; })
+                  .catch(function(err) { alert('Error: ' + err.message); });
+              });
+
+              document.getElementById('btnEnviarRetiroFlex').addEventListener('click', function() {
+                if (seEnvioAlgo) return;
+
+                const monto = parseFloat(document.getElementById('inputMontoRetiroFlex').value) || 0;
+                const aviso = document.getElementById('avisoMontoRetiroFlex');
+
+                if (monto <= 0 || monto > res.maximoTransferible + 0.01) {
+                  aviso.textContent = 'Monto inválido. Máximo: $' + res.maximoTransferible.toFixed(2);
+                  aviso.style.display = 'block';
+                  return;
+                }
+                aviso.style.display = 'none';
+
+                seEnvioAlgo = true;
+                const btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Enviando...';
+                document.getElementById('btnDeseoOtraCuentaFlex').disabled = true;
+
+                llamarAppsScript('crearSolicitudRetiroFlexible', [tokenSesion, idCuenta, monto])
+                  .then(function(r) {
+                    if (!r.success) {
+                      seEnvioAlgo = false;
+                      btn.disabled = false;
+                      btn.textContent = 'Enviar solicitud';
+                      document.getElementById('btnDeseoOtraCuentaFlex').disabled = false;
+                      alert(r.mensaje);
+                      return;
+                    }
+                    alert(r.mensaje);
+                    abrirSeccionFlexible();
+                  })
+                  .catch(function(err) { alert('Error: ' + err.message); });
+              });
+            })
+            .catch(function(err) {
+              document.getElementById('zonaCuentaRetiroFlex').innerHTML = '<div style="color:red;">' + err.message + '</div>';
+            });
+        })
+        .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
     }
   </script>
 
