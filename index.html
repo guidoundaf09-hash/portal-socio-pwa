@@ -1493,16 +1493,15 @@
             '<button class="btn-compartir-cuenta" onclick="compartirCuentaFlexible()">🔗 Compartir</button>' +
           '</div>' +
         '</div>' +
-                '<div class="fila-botones-ahorro">' +
-          '<button class="btn-accion-ahorro btn-acreditar" onclick="abrirModalAcreditarFlexible()">💰 Acreditar cuenta</button>' +
-          '<button class="btn-accion-ahorro btn-transferir-mis" onclick="abrirModalTransferirFlexible(\'' + c.idCuenta + '\')">💳 A mi cta. Ahorros</button>' +
+                        '<div class="fila-botones-ahorro">' +
+          '<button class="btn-accion-ahorro btn-acreditar" onclick="abrirModalFlotanteFlexible(\'acreditar\', \'' + c.idCuenta + '\', ' + c.saldoActual + ')">💰 Acreditar cuenta</button>' +
+          '<button class="btn-accion-ahorro btn-transferir-mis" onclick="abrirModalFlotanteFlexible(\'transferir\', \'' + c.idCuenta + '\', ' + c.saldoActual + ')">💳 A mi cta. Ahorros</button>' +
         '</div>' +
         '<div class="fila-botones-ahorro">' +
-          '<button class="btn-accion-ahorro btn-retiro-pf" onclick="abrirModalRetiroFlexible(\'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar externo</button>' +
+          '<button class="btn-accion-ahorro btn-retiro-pf" onclick="abrirModalFlotanteFlexible(\'retirar\', \'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar externo</button>' +
           '<button class="btn-accion-ahorro btn-retiro-pf-btn" onclick="cargarMovimientosFlexible(\'' + c.idCuenta + '\')">📋 Movimientos</button>' +
         '</div>' +
-        '<div id="listaMovimientosFlexible"></div>' +
-        '<div id="zonaAcreditarFlexible"></div>';
+        '<div id="listaMovimientosFlexible"></div>';
     }
 
     function toggleSaldoFlexible() {
@@ -1566,8 +1565,9 @@
         });
     }
 
-    function abrirModalAcreditarFlexible() {
-      const zona = document.getElementById('zonaAcreditarFlexible');
+       function abrirModalAcreditarFlexible(idContenedor) {
+      idContenedor = idContenedor || 'zonaAcreditarFlexible';
+      const zona = document.getElementById(idContenedor);
       const hoy = new Date().toISOString().split('T')[0];
 
       zona.innerHTML =
@@ -1633,9 +1633,9 @@
               alert(res.mensaje);
               return;
             }
-            solicitudEnviadaFlex = true;
+                        solicitudEnviadaFlex = true;
             alert(res.mensaje);
-            abrirSeccionFlexible();
+            cerrarModalFlotanteFlexible();
           })
           .catch(function(err) {
             btn.disabled = false; btn.textContent = 'Enviar solicitud';
@@ -1655,9 +1655,44 @@
       const numero = document.getElementById('numCuentaTxtFlex').textContent;
       navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
     }
+    function abrirModalFlotanteFlexible(tipo, idCuenta, saldoActual) {
+      if (!document.getElementById('modalFlotanteFlexible')) {
+        const modalHTML =
+          '<div id="modalFlotanteFlexible" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; display:flex; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) cerrarModalFlotanteFlexible()">' +
+            '<div style="background:#f7f9fc; border-radius:18px; width:100%; max-width:400px; max-height:88vh; overflow-y:auto; padding:18px;" onclick="event.stopPropagation()">' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+                '<div id="tituloModalFlotanteFlexible" style="font-weight:800; color:#003087; font-size:16px;"></div>' +
+                '<button onclick="cerrarModalFlotanteFlexible()" style="background:none; border:none; font-size:20px; color:#7a8699; cursor:pointer;">✕</button>' +
+              '</div>' +
+              '<div id="zonaModalFlotanteFlexible"></div>' +
+            '</div>' +
+          '</div>';
+        const div = document.createElement('div');
+        div.innerHTML = modalHTML;
+        document.body.appendChild(div.firstElementChild);
+      }
 
-    function abrirModalTransferirFlexible(idCuenta) {
-      const zona = document.getElementById('zonaAcreditarFlexible');
+      document.getElementById('modalFlotanteFlexible').style.display = 'flex';
+
+      if (tipo === 'acreditar') {
+        document.getElementById('tituloModalFlotanteFlexible').textContent = 'Acreditar cuenta';
+        abrirModalAcreditarFlexible('zonaModalFlotanteFlexible');
+      } else if (tipo === 'transferir') {
+        document.getElementById('tituloModalFlotanteFlexible').textContent = 'Transferir a mi cta. Ahorros';
+        abrirModalTransferirFlexible(idCuenta, 'zonaModalFlotanteFlexible');
+      } else {
+        document.getElementById('tituloModalFlotanteFlexible').textContent = 'Retirar a banco externo';
+        abrirModalRetiroFlexible(idCuenta, saldoActual, 'zonaModalFlotanteFlexible');
+      }
+    }
+
+    function cerrarModalFlotanteFlexible() {
+      const modal = document.getElementById('modalFlotanteFlexible');
+      if (modal) modal.style.display = 'none';
+    }
+        function abrirModalTransferirFlexible(idCuenta, idContenedor) {
+      idContenedor = idContenedor || 'zonaAcreditarFlexible';
+      const zona = document.getElementById(idContenedor);
       zona.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
 
       llamarAppsScript('obtenerSaldoMinimoFlexibleSocio', [tokenSesion, idCuenta])
@@ -1707,8 +1742,8 @@
                   aviso.style.display = 'block';
                   return;
                 }
-                alert(r.mensaje);
-                abrirSeccionFlexible();
+                               alert(r.mensaje);
+                cerrarModalFlotanteFlexible();
               })
               .catch(function(err) {
                 yaEnviado = false;
@@ -1721,8 +1756,9 @@
         .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
     }
 
-    function abrirModalRetiroFlexible(idCuenta, saldoActual) {
-      const zona = document.getElementById('zonaAcreditarFlexible');
+        function abrirModalRetiroFlexible(idCuenta, saldoActual, idContenedor) {
+      idContenedor = idContenedor || 'zonaAcreditarFlexible';
+      const zona = document.getElementById(idContenedor);
       zona.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando...</div>';
 
       llamarAppsScript('obtenerSaldoMinimoFlexibleSocio', [tokenSesion, idCuenta])
@@ -1803,8 +1839,8 @@
                       alert(r.mensaje);
                       return;
                     }
-                    alert(r.mensaje);
-                    abrirSeccionFlexible();
+                                    alert(r.mensaje);
+                cerrarModalFlotanteFlexible();
                   })
                   .catch(function(err) { alert('Error: ' + err.message); });
               });
