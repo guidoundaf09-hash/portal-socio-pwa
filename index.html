@@ -1441,9 +1441,8 @@
             return;
           }
 
-          cuentaFlexibleActual = res;
+                  cuentaFlexibleActual = res;
           renderPantallaFlexible(res);
-          cargarMovimientosFlexible(res.idCuenta);
         })
         .catch(function(err) { cont.innerHTML = '<div style="color:red; padding:20px;">' + err.message + '</div>'; });
     }
@@ -1464,15 +1463,15 @@
             '<button class="btn-compartir-cuenta" onclick="compartirCuentaFlexible()">🔗 Compartir</button>' +
           '</div>' +
         '</div>' +
-        '<div class="fila-botones-ahorro">' +
+                '<div class="fila-botones-ahorro">' +
           '<button class="btn-accion-ahorro btn-acreditar" onclick="abrirModalAcreditarFlexible()">💰 Acreditar cuenta</button>' +
           '<button class="btn-accion-ahorro btn-transferir-mis" onclick="abrirModalTransferirFlexible(\'' + c.idCuenta + '\')">💳 A mi cta. Ahorros</button>' +
         '</div>' +
         '<div class="fila-botones-ahorro">' +
-          '<button class="btn-accion-ahorro btn-retiro-pf" style="width:100%;" onclick="abrirModalRetiroFlexible(\'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar (banco externo)</button>' +
+          '<button class="btn-accion-ahorro btn-retiro-pf" onclick="abrirModalRetiroFlexible(\'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar externo</button>' +
+          '<button class="btn-accion-ahorro btn-retiro-pf-btn" onclick="cargarMovimientosFlexible(\'' + c.idCuenta + '\')">📋 Movimientos</button>' +
         '</div>' +
-        '<div class="titulo-movimientos">Movimientos</div>' +
-        '<div id="listaMovimientosFlexible"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div></div>' +
+        '<div id="listaMovimientosFlexible"></div>' +
         '<div id="zonaAcreditarFlexible"></div>';
     }
 
@@ -1491,14 +1490,16 @@
       }
     }
 
-    function cargarMovimientosFlexible(idCuenta) {
+       function cargarMovimientosFlexible(idCuenta) {
+      document.getElementById('listaMovimientosFlexible').innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div>';
+
       llamarAppsScript('obtenerMovimientosFlexible', [tokenSesion, idCuenta])
         .then(function(res) {
           const cont = document.getElementById('listaMovimientosFlexible');
-          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
-          if (!res.movimientos.length) { cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+                   if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { cont.innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
 
-          let html = '';
+          let html = '<div class="titulo-movimientos">Movimientos</div>';
           let fechaAnterior = null;
 
           res.movimientos.forEach(function(m) {
