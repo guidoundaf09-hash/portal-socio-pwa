@@ -788,9 +788,8 @@
             return;
           }
 
-          cuentaAhorroActual = res;
+                   cuentaAhorroActual = res;
           renderPantallaAhorros(res);
-          cargarMovimientosAhorro(res.idCuenta);
         })
         .catch(function(err) { cont.innerHTML = '<div style="color:red; padding:20px;">' + err.message + '</div>'; });
     }
@@ -836,12 +835,14 @@
             '<button class="btn-compartir-cuenta" onclick="compartirCuentaAhorro()">🔗 Compartir</button>' +
           '</div>' +
         '</div>' +
-        '<div class="fila-botones-ahorro">' +
+                '<div class="fila-botones-ahorro">' +
           '<button class="btn-accion-ahorro btn-acreditar" onclick="abrirModalAcreditarCuenta()">💰 Acreditar cuenta</button>' +
           '<button class="btn-accion-ahorro btn-transferir-mis" onclick="abrirModalRetiroAhorro(\'' + c.idCuenta + '\', ' + c.saldoActual + ')">💸 Retirar</button>' +
         '</div>' +
-        '<div class="titulo-movimientos">Movimientos</div>' +
-        '<div id="listaMovimientosAhorro"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div></div>' +
+        '<div class="fila-botones-ahorro">' +
+          '<button class="btn-accion-ahorro btn-retiro-pf-btn" style="width:100%;" onclick="cargarMovimientosAhorro(\'' + c.idCuenta + '\')">📋 Ver movimientos</button>' +
+        '</div>' +
+        '<div id="listaMovimientosAhorro"></div>' +
         '<div id="zonaAcreditarCuenta"></div>';
     }
 
@@ -860,14 +861,16 @@
       }
     }
 
-    function cargarMovimientosAhorro(idCuenta) {
+      function cargarMovimientosAhorro(idCuenta) {
+      document.getElementById('listaMovimientosAhorro').innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div>';
+
       llamarAppsScript('obtenerMovimientosAhorroVista', [tokenSesion, idCuenta])
         .then(function(res) {
           const cont = document.getElementById('listaMovimientosAhorro');
-          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
-          if (!res.movimientos.length) { cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+                    if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { cont.innerHTML = '<div class="titulo-movimientos">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
 
-          let html = '';
+          let html = '<div class="titulo-movimientos">Movimientos</div>';
           let fechaAnterior = null;
 
           res.movimientos.forEach(function(m) {
