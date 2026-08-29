@@ -1843,8 +1843,7 @@
       llamarAppsScript('obtenerDetallePlanProgramado', [tokenSesion, idCuenta])
         .then(function(res) {
           if (!res.success) { cont.innerHTML = '<div style="text-align:center; padding:40px;">' + res.mensaje + '</div>'; return; }
-          renderDetallePlanProgramado(res);
-          cargarMovimientosProgramado(idCuenta);
+                    renderDetallePlanProgramado(res);
         })
         .catch(function(err) { cont.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
     }
@@ -1888,13 +1887,13 @@
           '<div class="fila-dato-cuota"><span>Plazo</span><b>' + p.plazoMeses + ' meses</b></div>' +
           '<div class="fila-dato-cuota"><span>Vencimiento</span><b>' + p.fechaVencimiento + '</b></div>' +
         '</div>' +
-        (botonAportar ? '<div style="margin-bottom:18px;">' + botonAportar + '</div>' : '') +
+                (botonAportar ? '<div style="margin-bottom:18px;">' + botonAportar + '</div>' : '') +
         '<div id="zonaAportarProgramado"></div>' +
         '<div class="titulo-movimientos">Progreso de aportes</div>' +
         '<div class="grid-cuadritos-mes">' + cuadritosHTML + '</div>' +
         '<div class="info-cuadrito" id="infoCuadritoTxt"></div>' +
-        '<div class="titulo-movimientos" style="margin-top:20px;">Movimientos</div>' +
-        '<div id="listaMovimientosProgramado"><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div></div>';
+        '<button class="btn-accion-ahorro btn-retiro-pf-btn" style="width:100%; margin-top:18px;" onclick="cargarMovimientosProgramado(\'' + p.idCuenta + '\')">📋 Ver movimientos</button>' +
+        '<div id="listaMovimientosProgramado"></div>';
     }
 
     function mostrarInfoCuadrito(mes, clase) {
@@ -1913,14 +1912,16 @@
       document.getElementById('saldoProgTxt').classList.toggle('saldo-oculto');
     }
 
-    function cargarMovimientosProgramado(idCuenta) {
+        function cargarMovimientosProgramado(idCuenta) {
+      document.getElementById('listaMovimientosProgramado').innerHTML = '<div class="titulo-movimientos" style="margin-top:14px;">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Cargando movimientos...</div>';
+
       llamarAppsScript('obtenerMovimientosProgramado', [tokenSesion, idCuenta])
         .then(function(res) {
           const cont = document.getElementById('listaMovimientosProgramado');
-          if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
-          if (!res.movimientos.length) { cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
+                   if (!res.success) { cont.innerHTML = '<div style="color:red;">' + res.mensaje + '</div>'; return; }
+          if (!res.movimientos.length) { cont.innerHTML = '<div class="titulo-movimientos" style="margin-top:14px;">Movimientos</div><div style="text-align:center; color:#9aa5b5; padding:20px;">Aún no tienes movimientos.</div>'; return; }
 
-          let html = '';
+          let html = '<div class="titulo-movimientos" style="margin-top:14px;">Movimientos</div>';
           let fechaAnterior = null;
 
           res.movimientos.forEach(function(m) {
