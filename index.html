@@ -367,7 +367,14 @@
   <div id="pantallaRecuperar" style="position:fixed; inset:0; background:linear-gradient(180deg, #f4f7fb 0%, #e9eef5 100%); display:none; align-items:center; justify-content:center; padding:20px; z-index:65;">
     <div class="tarjeta-recuperar" id="contenidoRecuperar" style="width:100%; max-width:380px; background:#fff; border-radius:22px; padding:34px 28px 30px; box-shadow:0 20px 50px rgba(0,48,135,0.15); text-align:center;"></div>
   </div>
-
+  <div id="modalSesionExpirada" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; border-radius:18px; width:100%; max-width:340px; padding:28px 24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,0.3);">
+      <div style="font-size:38px; margin-bottom:10px;">⏰</div>
+      <div style="font-weight:800; color:#003087; font-size:16px; margin-bottom:8px;">Tu sesión expiró</div>
+      <div style="font-size:13px; color:#7a8699; margin-bottom:22px;">Por tu seguridad, cerramos tu sesión por inactividad. Ingresa de nuevo para continuar.</div>
+      <button id="btnAceptarSesionExpirada" style="width:100%; padding:13px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-weight:700; font-size:15px; cursor:pointer;">Aceptar</button>
+    </div>
+  </div>
   
   <script>
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwapUQnX_Y9YZuF1Z4I_gilpgk9mIMiwSoUHofSkYPl_g-hbuAdoGxVP2N0Uu0F_D_USw/exec';
@@ -634,7 +641,7 @@
         .catch(function(err) { alert('Error: ' + err.message); });
     }
 
-    function cerrarSesionManual() {
+      function cerrarSesionManual() {
       if (!confirm('¿Seguro que deseas cerrar sesión?')) return;
       cerrarSesionPorInactividad();
     }
@@ -2422,6 +2429,77 @@
           });
       });
     }
+
+        // ======================== CONTROL DE INACTIVIDAD ========================
+    const UMBRAL_INACTIVIDAD_MS = 120 * 1000; // 2 minutos
+    let ultimaActividad = Date.now();
+
+    function marcarActividad() {
+      ultimaActividad = Date.now();
+    }
+
+    ['click', 'touchstart', 'keydown', 'scroll'].forEach(function(evento) {
+      document.addEventListener(evento, marcarActividad, true);
+    });
+
+    setInterval(function() {
+      if (!tokenSesion) return;
+      if (Date.now() - ultimaActividad > UMBRAL_INACTIVIDAD_MS) {
+        cerrarSesionPorInactividad();
+      }
+    }, 5000);
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible' && tokenSesion) {
+        if (Date.now() - ultimaActividad > UMBRAL_INACTIVIDAD_MS) {
+          cerrarSesionPorInactividad();
+        } else {
+          marcarActividad();
+        }
+      }
+    });
+
+    function cerrarSesionPorInactividad() {
+      if (!tokenSesion) return;
+      const tokenACerrar = tokenSesion;
+      tokenSesion = null;
+
+      forzarSoloPantallaLogin();
+      mostrarAvisoSesionExpirada();
+
+      llamarAppsScript('cerrarSesion', [tokenACerrar]).catch(function() {});
+    }
+
+    function forzarSoloPantallaLogin() {
+      const todasLasPantallas = document.querySelectorAll('[id^="pantalla"]');
+      todasLasPantallas.forEach(function(el) {
+        if (el.id !== 'pantallaLogin') {
+          el.classList.remove('visible');
+          el.style.setProperty('display', 'none', 'important');
+        }
+      });
+
+      const modalesFlotantes = document.querySelectorAll('#modalAcreditarRapido, #modalRetiroRapido, #panelNotificaciones');
+      modalesFlotantes.forEach(function(el) {
+        el.style.setProperty('display', 'none', 'important');
+      });
+
+      document.getElementById('inputCorreo').value = '';
+      document.getElementById('inputPassword').value = '';
+
+      const login = document.getElementById('pantallaLogin');
+      login.style.removeProperty('display');
+      login.classList.add('visible');
+    }
+
+    function mostrarAvisoSesionExpirada() {
+      document.getElementById('modalSesionExpirada').style.display = 'flex';
+    }
+
+    document.getElementById('btnAceptarSesionExpirada').addEventListener('click', function() {
+      document.getElementById('modalSesionExpirada').style.display = 'none';
+      forzarSoloPantallaLogin();
+    });
   </script>
 
 </body>
