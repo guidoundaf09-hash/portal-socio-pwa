@@ -2231,9 +2231,9 @@
           '<div class="fila-dato-cuota"><span>Días restantes</span><b>' + p.diasRestantes + '</b></div>' +
           (p.frecuenciaPagoInteres !== 'VENCIMIENTO' ? '<div class="fila-dato-cuota"><span>Próximo pago de interés</span><b>' + p.proximoPagoInteres + '</b></div>' : '') +
         '</div>' +
-        '<div class="fila-botones-pf">' +
-          '<button class="btn-accion-pf btn-retiro-pf-btn" ' + (puedeRetirar ? 'onclick="abrirModalRetiroInteres(\'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💸 Retiro de interés</button>' +
-          '<button class="btn-accion-pf btn-transferir-pf" ' + (puedeRetirar ? 'onclick="confirmarTransferirPFaAhorros(\'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💳 A mi cta. Ahorros</button>' +
+               '<div class="fila-botones-pf">' +
+          '<button class="btn-accion-pf btn-retiro-pf-btn" ' + (puedeRetirar ? 'onclick="abrirModalFlotantePF(\'retiro\', \'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💸 Retiro de interés</button>' +
+          '<button class="btn-accion-pf btn-transferir-pf" ' + (puedeRetirar ? 'onclick="abrirModalFlotantePF(\'transferir\', \'' + p.idCuenta + '\', ' + p.interesDisponibleRetiro + ')"' : 'disabled') + '>💳 A mi cta. Ahorros</button>' +
           '<button class="btn-accion-pf btn-mov-pf" onclick="cargarMovimientosPF(\'' + p.idCuenta + '\')">📋 Movimientos</button>' +
         '</div>' +
         '<div id="zonaMovimientosPF"></div>';
@@ -2278,12 +2278,43 @@
         .catch(function(err) { zona.innerHTML = '<div style="color:red;">' + err.message + '</div>'; });
     }
 
-    function abrirModalRetiroInteres(idCuenta, montoInteres) {
-      const cont = document.getElementById('contenidoPF');
+        function abrirModalFlotantePF(tipo, idCuenta, monto) {
+      if (!document.getElementById('modalFlotantePF')) {
+        const modalHTML =
+          '<div id="modalFlotantePF" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; display:flex; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this) cerrarModalFlotantePF()">' +
+            '<div style="background:#f7f9fc; border-radius:18px; width:100%; max-width:400px; max-height:88vh; overflow-y:auto; padding:18px;" onclick="event.stopPropagation()">' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+                '<div id="tituloModalFlotantePF" style="font-weight:800; color:#003087; font-size:16px;"></div>' +
+                '<button onclick="cerrarModalFlotantePF()" style="background:none; border:none; font-size:20px; color:#7a8699; cursor:pointer;">✕</button>' +
+              '</div>' +
+              '<div id="zonaModalFlotantePF"></div>' +
+            '</div>' +
+          '</div>';
+        const div = document.createElement('div');
+        div.innerHTML = modalHTML;
+        document.body.appendChild(div.firstElementChild);
+      }
 
-      cont.innerHTML =
+      document.getElementById('modalFlotantePF').style.display = 'flex';
+
+      if (tipo === 'retiro') {
+        document.getElementById('tituloModalFlotantePF').textContent = 'Retiro de interés';
+        abrirModalRetiroInteres(idCuenta, monto, 'zonaModalFlotantePF');
+      } else {
+        document.getElementById('tituloModalFlotantePF').textContent = 'Transferir a mi cta. Ahorros';
+        mostrarConfirmacionTransferirPF(idCuenta, monto, 'zonaModalFlotantePF');
+      }
+    }
+
+    function cerrarModalFlotantePF() {
+      const modal = document.getElementById('modalFlotantePF');
+      if (modal) modal.style.display = 'none';
+    }
+       function abrirModalRetiroInteres(idCuenta, montoInteres, idContenedor) {
+      const cont = document.getElementById(idContenedor || 'contenidoPF');
+
+          cont.innerHTML =
         '<div class="card-cuenta-info">' +
-          '<div class="titulo-movimientos" style="margin-top:0;">Retiro de interés</div>' +
           '<div style="text-align:center; margin:20px 0;">' +
             '<div style="font-size:12px; color:#7a8699;">Monto a retirar (retiro completo)</div>' +
             '<div style="font-size:30px; font-weight:800; color:#003087;">$' + montoInteres.toFixed(2) + '</div>' +
@@ -2339,7 +2370,8 @@
                   alert(r.mensaje);
                   return;
                 }
-                alert(r.mensaje);
+                               alert(r.mensaje);
+                cerrarModalFlotantePF();
                 abrirDetallePlazoFijo(idCuenta);
               })
               .catch(function(err) { alert('Error: ' + err.message); });
@@ -2350,15 +2382,45 @@
         });
     }
 
-    function confirmarTransferirPFaAhorros(idCuenta, monto) {
-      if (!confirm('¿Transferir $' + monto.toFixed(2) + ' de interés a tu cuenta de Ahorros a la Vista?')) return;
+       function mostrarConfirmacionTransferirPF(idCuenta, monto, idContenedor) {
+      const zona = document.getElementById(idContenedor);
+      zona.innerHTML =
+        '<div class="card-cuenta-info">' +
+          '<div style="text-align:center; margin:10px 0 20px;">' +
+            '<div style="font-size:12px; color:#7a8699;">Monto a transferir</div>' +
+            '<div style="font-size:30px; font-weight:800; color:#003087;">$' + monto.toFixed(2) + '</div>' +
+            '<div style="font-size:12.5px; color:#7a8699; margin-top:8px;">Se transferirá a tu cuenta de Ahorros a la Vista.</div>' +
+          '</div>' +
+          '<button id="btnConfirmarTransferirPF" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#003087,#001d54); color:#fff; font-size:15px; font-weight:700; cursor:pointer;">Confirmar transferencia</button>' +
+        '</div>';
 
-      llamarAppsScript('transferirInteresPFaAhorros', [tokenSesion, idCuenta])
-        .then(function(res) {
-          alert(res.mensaje);
-          if (res.success) abrirDetallePlazoFijo(idCuenta);
-        })
-        .catch(function(err) { alert('Error: ' + err.message); });
+      let yaEnviado = false;
+      document.getElementById('btnConfirmarTransferirPF').addEventListener('click', function() {
+        if (yaEnviado) return;
+        yaEnviado = true;
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Transfiriendo...';
+
+        llamarAppsScript('transferirInteresPFaAhorros', [tokenSesion, idCuenta])
+          .then(function(res) {
+            alert(res.mensaje);
+            if (res.success) {
+              cerrarModalFlotantePF();
+              abrirDetallePlazoFijo(idCuenta);
+            } else {
+              yaEnviado = false;
+              btn.disabled = false;
+              btn.textContent = 'Confirmar transferencia';
+            }
+          })
+          .catch(function(err) {
+            yaEnviado = false;
+            btn.disabled = false;
+            btn.textContent = 'Confirmar transferencia';
+            alert('Error: ' + err.message);
+          });
+      });
     }
       let correoRecuperacionActual = "";
 
