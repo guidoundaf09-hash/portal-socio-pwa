@@ -1,6 +1,6 @@
 {
-  "name": "Caja de Ahorros Unión y Progreso",
-  "short_name": "Unión y Progreso",
+  "name": "Caja Ahorro",
+"short_name": "Caja Ahorro",
   "description": "Portal del Socio - Caja de Ahorros Unión y Progreso",
   "start_url": "./",
   "scope": "./",
