@@ -2791,8 +2791,10 @@
             if (a.destino === 'creditos') onclickTxt = "abrirSeccionCreditos()";
             if (a.destino === 'programado') onclickTxt = "abrirSeccionProgramado()";
             if (a.destino === 'mora_suelta') onclickTxt = "abrirPantallaMoraSuelta('" + a.idPrestamo + "')";
-                        if (a.destino === 'mensaje_admin') onclickTxt = "abrirModalMensajeAdmin('" + a.idSolicitud + "', " + JSON.stringify(a.textoMensaje) + ")";
-
+           if (a.destino === 'mensaje_admin') {
+  const msgEscapado = JSON.stringify(a.textoMensaje || '').replace(/"/g, '&quot;');
+  onclickTxt = "abrirModalMensajeAdmin('" + a.idSolicitud + "', " + msgEscapado + ")";
+}
             html += '<div class="card-aviso-dash ' + a.color + '" onclick="' + onclickTxt + '">' +
                       '<div class="titulo-aviso">' + a.titulo + '</div>' +
                       '<div class="mensaje-aviso">' + a.mensaje + '</div>' +
