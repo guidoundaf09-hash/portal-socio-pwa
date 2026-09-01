@@ -1043,12 +1043,12 @@
 
       document.getElementById('modalFlotanteAhorros').style.display = 'flex';
 
-      if (tipo === 'acreditar') {
+           if (tipo === 'acreditar') {
         document.getElementById('tituloModalFlotanteAhorros').textContent = 'Acreditar cuenta';
-        abrirModalAcreditarCuenta('zonaModalFlotanteAhorros', true);
+        abrirModalAcreditarCuenta('zonaModalFlotanteAhorros');
       } else {
         document.getElementById('tituloModalFlotanteAhorros').textContent = 'Retirar';
-        abrirModalRetiroAhorro(idCuenta, saldoActual, 'zonaModalFlotanteAhorros', true);
+        abrirModalRetiroAhorro(idCuenta, saldoActual, 'zonaModalFlotanteAhorros');
       }
     }
 
@@ -1056,11 +1056,11 @@
       const modal = document.getElementById('modalFlotanteAhorros');
       if (modal) modal.style.display = 'none';
     }
-    function abrirModalAcreditarCuenta(idContenedor, esModoRapido) {
-      idContenedor = idContenedor || 'zonaAcreditarCuenta';
+        function abrirModalAcreditarCuenta(idContenedor) {
+      idContenedor = idContenedor || 'zonaAcreditarRapido';
       const zona = document.getElementById(idContenedor);
       const hoy = new Date().toISOString().split('T')[0];
-      const sufijo = esModoRapido ? '_rapido' : '';
+      const sufijo = '_' + idContenedor;
 
       zona.innerHTML =
         '<div style="background:#fff; border-radius:16px; padding:16px 18px; margin-top:14px; border:1.5px solid #D4AF37;">' +
@@ -1126,9 +1126,13 @@
               alert(res.mensaje);
               return;
             }
-                        solicitudEnviadaAho = true;
+            solicitudEnviadaAho = true;
             alert(res.mensaje);
-            if (esModoRapido) { cerrarModalFlotanteAhorros(); } else { abrirSeccionAhorros(); }
+            if (idContenedor === 'zonaModalFlotanteAhorros') {
+              cerrarModalFlotanteAhorros();
+            } else {
+              cerrarModalAcreditarRapido();
+            }
           })
           .catch(function(err) {
             btn.disabled = false; btn.textContent = 'Enviar solicitud';
@@ -1151,10 +1155,10 @@
       navigator.clipboard.writeText(numero).then(function() { alert('Número copiado: ' + numero); });
     }
 
-    function abrirModalRetiroAhorro(idCuenta, saldoActual, idContenedor, esModoRapido) {
-      idContenedor = idContenedor || 'contenidoAhorros';
+       function abrirModalRetiroAhorro(idCuenta, saldoActual, idContenedor) {
+      idContenedor = idContenedor || 'zonaRetiroRapido';
       const cont = document.getElementById(idContenedor);
-      const sufijo = esModoRapido ? '_rapido' : '';
+      const sufijo = '_' + idContenedor;
       const saldoMinimo = 1;
       const maximoRetirable = Math.max(0, saldoActual - saldoMinimo);
 
@@ -1232,8 +1236,12 @@
                   alert(r.mensaje);
                   return;
                 }
-                              alert(r.mensaje);
-                if (esModoRapido) { cerrarModalFlotanteAhorros(); } else { abrirSeccionAhorros(); }
+                alert(r.mensaje);
+                if (idContenedor === 'zonaModalFlotanteAhorros') {
+                  cerrarModalFlotanteAhorros();
+                } else {
+                  cerrarModalRetiroRapido();
+                }
               })
               .catch(function(err) { alert('Error: ' + err.message); });
           });
