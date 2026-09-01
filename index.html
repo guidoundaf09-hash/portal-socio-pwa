@@ -304,7 +304,7 @@
       <div onclick="abrirSeccionRetiros()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#9aa5b5; font-size:10.5px; font-weight:600; cursor:pointer;">
         <div style="font-size:19px;">💸</div>Retiros
       </div>
-            <div onclick="abrirSeccionPerfil()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#9aa5b5; font-size:10.5px; font-weight:600; cursor:pointer;">
+            <div onclick="()" style="display:flex; flex-direction:column; align-items:center; gap:3px; color:#9aa5b5; font-size:10.5px; font-weight:600; cursor:pointer;">
         <div style="font-size:19px;">👤</div>Perfil
       </div>
     </div>
@@ -409,9 +409,7 @@
         Se enviará como: <b id="previewSaludoWA">Buenas tardes. Le saluda ...</b>
       </div>
 
-      <label style="display:block; font-size:12.5px; font-weight:700; color:#003087; margin-bottom:6px;">Tu mensaje</label>
-      <textarea id="inputMensajeWA" rows="5" placeholder="Escribe tu consulta aquí..." style="width:100%; padding:12px; border:1.5px solid #dde3ec; border-radius:12px; font-size:14px; box-sizing:border-box; resize:vertical; margin-bottom:12px;"></textarea>
-      <div style="font-size:11.5px; color:#7a8699; margin-bottom:14px;">Si adjuntas una imagen, se guardará en tu celular para que la agregues manualmente en WhatsApp con el clip 📎.</div>
+            <div style="font-size:11.5px; color:#7a8699; margin-bottom:14px; background:#eef2fb; padding:10px 12px; border-radius:10px;">💡 Si deseas enviar comprobantes u otros documentos, puedes adjuntarlos directamente en WhatsApp una vez abierto el chat.</div>
 
       <button id="btnEnviarWA" style="width:100%; padding:14px; border:none; border-radius:12px; background:#25D366; color:#fff; font-size:15px; font-weight:700; cursor:pointer;">Enviar por WhatsApp</button>
     </div>
@@ -626,13 +624,16 @@
       }, 1800);
     }
 
-        function mostrarDashboard(nombre) {
+           function mostrarDashboard(nombre) {
       document.getElementById('pantallaBienvenida').style.display = 'none';
       document.getElementById('nombreDash').textContent = nombre || 'Socio';
       document.getElementById('pantallaDashboard').style.display = 'flex';
-            cargarSaldoAhorroDash();
+      cargarSaldoAhorroDash();
       actualizarBadgeNotificacionesDash();
       cargarAvisosDash();
+
+      pilaNavegacion = [];
+      registrarPantallaEnHistorial('dashboard');
     }
 
     let cuentaAhorroActual = null;
@@ -714,6 +715,7 @@
     function abrirSeccionPerfil() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaPerfil').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
       renderPerfilPrincipal();
     }
 
@@ -891,6 +893,7 @@
     function abrirSeccionAhorros() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaAhorros').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
 
       const cont = document.getElementById('contenidoAhorros');
       cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
@@ -1301,6 +1304,7 @@
     function abrirSeccionCreditos() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaCreditos').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
       document.getElementById('tituloHeaderCreditos').textContent = 'Mis Créditos';
 
       const cont = document.getElementById('contenidoCreditos');
@@ -1574,6 +1578,7 @@
     function abrirSeccionFlexible() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaFlexible').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
 
       const cont = document.getElementById('contenidoFlexible');
       cont.innerHTML = '<div style="text-align:center; color:#9aa5b5; padding:40px 20px;">Cargando...</div>';
@@ -1978,6 +1983,7 @@
     function abrirSeccionProgramado() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaProgramado').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
       document.getElementById('tituloHeaderProg').textContent = 'Ahorro Programado';
 
       const cont = document.getElementById('contenidoProgramado');
@@ -2269,6 +2275,7 @@
     function abrirSeccionPlazoFijo() {
       document.getElementById('pantallaDashboard').style.display = 'none';
       document.getElementById('pantallaPlazoFijo').style.display = 'flex';
+            registrarPantallaEnHistorial('secundaria');
       document.getElementById('tituloHeaderPF').textContent = 'Inversiones';
 
       const cont = document.getElementById('contenidoPF');
@@ -2957,12 +2964,7 @@
       document.getElementById('modalMensajeWA').style.display = 'none';
     }
 
-    document.getElementById('inputAdjuntoWA').addEventListener('change', function() {
-      const archivo = this.files[0];
-      const prev = document.getElementById('previewAdjuntoWA');
-      if (!archivo) { prev.innerHTML = ''; return; }
-      prev.innerHTML = '<div style="font-size:12px; color:#003087; font-weight:600;">📎 ' + archivo.name + ' (se descargará al enviar)</div>';
-    });
+
 
     document.getElementById('btnEnviarWA').addEventListener('click', function() {
       const mensajeTexto = document.getElementById('inputMensajeWA').value.trim();
@@ -2976,29 +2978,9 @@
       const nombre = nombreSocioActual || 'Socio';
       const mensajeCompleto = saludo + '. Le saluda ' + nombre + ', socio de la Caja de Ahorros Unión y Progreso.\n\n' + mensajeTexto;
 
-      const archivo = document.getElementById('inputAdjuntoWA').files[0];
-
-      function abrirWhatsapp() {
-        const url = 'https://wa.me/' + NUMERO_WHATSAPP_CAJA + '?text=' + encodeURIComponent(mensajeCompleto);
-        window.open(url, '_blank');
-        cerrarModalMensajeWA();
-      }
-
-      if (archivo) {
-        const enlaceDescarga = document.createElement('a');
-        enlaceDescarga.href = URL.createObjectURL(archivo);
-        enlaceDescarga.download = archivo.name;
-        document.body.appendChild(enlaceDescarga);
-        enlaceDescarga.click();
-        document.body.removeChild(enlaceDescarga);
-
-        setTimeout(function() {
-          alert('Tu imagen se descargó. En WhatsApp, usa el clip 📎 para adjuntarla antes de enviar.');
-          abrirWhatsapp();
-        }, 500);
-      } else {
-        abrirWhatsapp();
-      }
+          const url = 'https://wa.me/' + NUMERO_WHATSAPP_CAJA + '?text=' + encodeURIComponent(mensajeCompleto);
+      window.open(url, '_blank');
+      cerrarModalMensajeWA();
     });
 
 
@@ -3024,6 +3006,70 @@
           })
           .catch(function(err) { alert('Error: ' + err.message); });
       };
+    }
+
+
+
+
+
+
+
+
+
+
+        // ======================== CONTROL DEL BOTÓN ATRÁS DEL CELULAR ========================
+    let pilaNavegacion = [];
+
+    function registrarPantallaEnHistorial(nombrePantalla) {
+      pilaNavegacion.push(nombrePantalla);
+      history.pushState({ pantalla: nombrePantalla }, '');
+    }
+
+    window.addEventListener('popstate', function(event) {
+      manejarBotonAtras();
+    });
+
+    function manejarBotonAtras() {
+      // Si hay algún modal flotante abierto, ciérralo primero en vez de navegar
+      const modalesAbiertos = [
+        'modalFlotanteAhorros', 'modalFlotanteFlexible', 'modalFlotantePF', 'modalFlotanteProgramado',
+        'modalAcreditarRapido', 'modalRetiroRapido', 'panelNotificaciones', 'modalMensajeWA', 'modalMensajeAdmin'
+      ];
+      for (let i = 0; i < modalesAbiertos.length; i++) {
+        const el = document.getElementById(modalesAbiertos[i]);
+        if (el && (el.style.display === 'flex' || el.style.display === 'block')) {
+          el.style.display = 'none';
+          registrarPantallaEnHistorial('modalCerrado'); // mantenemos el historial "lleno" para seguir interceptando
+          return;
+        }
+      }
+
+      // Si NO hay token de sesión (estamos en login), dejar que el navegador haga lo normal
+      if (!tokenSesion) return;
+
+      // Si el dashboard es la única pantalla visible, es la "raíz" -> preguntar si desea salir
+      if (document.getElementById('pantallaDashboard').style.display === 'flex') {
+        registrarPantallaEnHistorial('dashboard'); // reponemos la entrada para seguir en la app
+        if (confirm('¿Estás seguro que deseas salir de la aplicación?')) {
+          cerrarSesionManual();
+        }
+        return;
+      }
+
+      // Caso general: cualquier otra pantalla secundaria -> regresar al dashboard
+      const pantallasSecundarias = ['pantallaCreditos','pantallaAhorros','pantallaFlexible','pantallaProgramado','pantallaPlazoFijo','pantallaPerfil'];
+      let seEncontroAbierta = false;
+
+      pantallasSecundarias.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el && el.style.display === 'flex') {
+          el.style.display = 'none';
+          document.getElementById('pantallaDashboard').style.display = 'flex';
+          seEncontroAbierta = true;
+        }
+      });
+
+      registrarPantallaEnHistorial('dashboard');
     }
   </script>
 
