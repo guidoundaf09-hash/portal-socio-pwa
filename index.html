@@ -2975,7 +2975,7 @@
 
 
 
-    document.getElementById('btnEnviarWA').addEventListener('click', function() {
+      document.getElementById('btnEnviarWA').addEventListener('click', function() {
       const mensajeTexto = document.getElementById('inputMensajeWA').value.trim();
       if (!mensajeTexto) { alert('Escribe tu mensaje'); return; }
 
@@ -2987,13 +2987,12 @@
       const nombre = nombreSocioActual || 'Socio';
       const mensajeCompleto = saludo + '. Le saluda ' + nombre + ', socio de la Caja de Ahorros Unión y Progreso.\n\n' + mensajeTexto;
 
-                    const url = 'https://wa.me/' + NUMERO_WHATSAPP_CAJA + '?text=' + encodeURIComponent(mensajeCompleto);
+      const url = 'https://wa.me/' + NUMERO_WHATSAPP_CAJA + '?text=' + encodeURIComponent(mensajeCompleto);
       window.open(url, '_blank');
       cerrarModalMensajeWA();
-      
-    
+    });
 
-        function abrirModalMensajeAdmin(idSolicitud, texto) {
+    function abrirModalMensajeAdmin(idSolicitud, texto) {
       document.getElementById('textoMensajeAdminModal').textContent = texto;
       document.getElementById('modalMensajeAdmin').style.display = 'flex';
 
